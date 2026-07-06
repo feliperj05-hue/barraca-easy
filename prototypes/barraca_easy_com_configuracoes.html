@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Barraca Easy — Caixa e Produção</title>
+  <style>
+    :root {
+      --bg: #fff8ef;
+      --card: #ffffff;
+      --text: #2d2118;
+      --muted: #7b6a5d;
+      --primary: #ff8a00;
+      --primary-dark: #d86f00;
+      --secondary: #1f8a70;
+      --danger: #c0392b;
+      --border: #ead8c3;
+      --soft: #fff1df;
+      --warning: #fff4cc;
+      --shadow: 0 14px 30px rgba(84, 54, 23, 0.12);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #fff8ef, #fff0dc);
+      color: var(--text);
+    }
+
+    header {
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: rgba(255,255,255,0.86);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      background: var(--primary);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 26px;
+      font-weight: 900;
+      box-shadow: 0 8px 18px rgba(255, 138, 0, 0.28);
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    .brand h1 { font-size: 26px; line-height: 1; }
+    .brand p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+    nav { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+
+    button {
+      border: 0;
+      border-radius: 16px;
+      padding: 14px 18px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      color: var(--text);
+      background: var(--soft);
+      transition: transform .08s ease, opacity .08s ease;
+      touch-action: manipulation;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(1px); opacity: .85; }
+
+    .active-tab, .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 9px 18px rgba(255, 138, 0, 0.25);
+    }
+
+    .btn-secondary { background: var(--secondary); color: #fff; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-ghost { background: #fff; border: 1px solid var(--border); }
+
+    main {
+      width: min(1220px, 100%);
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    .hero {
+      background: var(--card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      border-radius: 30px;
+      padding: 28px;
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 22px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .hero h2 {
+      font-size: clamp(32px, 5vw, 56px);
+      line-height: .98;
+      letter-spacing: -1.6px;
+      margin-bottom: 14px;
+    }
+
+    .hero p { color: var(--muted); font-size: 20px; line-height: 1.45; }
+
+    .hero-card {
+      background: linear-gradient(135deg, #ff8a00, #ffba5b);
+      border-radius: 28px;
+      color: white;
+      padding: 28px;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .hero-card strong { font-size: 62px; line-height: 1; }
+    .hero-card span { font-size: 18px; font-weight: 800; opacity: .95; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .panel-title h2 { font-size: 24px; }
+
+    .categories {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .category-btn {
+      background: #fff;
+      border: 1px solid var(--border);
+    }
+
+    .category-btn.selected {
+      background: var(--secondary);
+      color: white;
+      border-color: var(--secondary);
+    }
+
+    .products {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .product {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: #fffaf3;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      min-height: 164px;
+      justify-content: space-between;
+    }
+
+    .emoji { font-size: 42px; margin-bottom: 8px; }
+    .product h3 { font-size: 18px; margin-bottom: 5px; }
+    .price { color: var(--secondary); font-size: 22px; font-weight: 900; }
+
+    .cart-list {
+      display: grid;
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .cart-item, .order-card, .summary-row, .notice {
+      border: 1px solid var(--border);
+      background: #fffaf3;
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .cart-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .qty { display: flex; align-items: center; gap: 8px; }
+    .qty button { width: 36px; height: 36px; padding: 0; border-radius: 12px; }
+
+    .total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px dashed var(--border);
+      margin-top: 14px;
+      padding-top: 14px;
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .payment-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .payment-grid button.selected {
+      background: var(--secondary);
+      color: #fff;
+    }
+
+    .field { margin: 14px 0; }
+
+    label {
+      display: block;
+      font-size: 15px;
+      color: var(--muted);
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    input {
+      width: 100%;
+      border: 2px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+      font-size: 28px;
+      font-weight: 900;
+      text-align: center;
+      outline: none;
+      color: var(--text);
+      background: #fffaf3;
+    }
+
+    input:focus { border-color: var(--primary); }
+
+    .big-action {
+      width: 100%;
+      padding: 20px;
+      font-size: 20px;
+      margin-top: 12px;
+    }
+
+    .empty {
+      color: var(--muted);
+      background: #fffaf3;
+      border: 1px dashed var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      text-align: center;
+      line-height: 1.45;
+    }
+
+    .ticket-screen {
+      min-height: 68vh;
+      display: grid;
+      place-items: center;
+    }
+
+    .ticket-card {
+      width: min(560px, 100%);
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 34px;
+      box-shadow: var(--shadow);
+      padding: 34px;
+      text-align: center;
+    }
+
+    .ticket-number {
+      font-size: clamp(82px, 18vw, 150px);
+      font-weight: 1000;
+      letter-spacing: -4px;
+      color: var(--primary);
+      line-height: .9;
+      margin: 16px 0;
+    }
+
+    .orders {
+      display: grid;
+      gap: 14px;
+    }
+
+    .order-card {
+      background: #fff;
+    }
+
+    .order-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .ticket-badge {
+      background: var(--primary);
+      color: white;
+      border-radius: 18px;
+      padding: 10px 14px;
+      font-size: 30px;
+      font-weight: 1000;
+      min-width: 110px;
+      text-align: center;
+    }
+
+    .status {
+      display: inline-flex;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 900;
+      background: #fff1df;
+      color: var(--primary-dark);
+    }
+
+    .status.done { background: #e9f8f3; color: var(--secondary); }
+    .status.called { background: var(--warning); color: #8a6500; }
+
+    .muted { color: var(--muted); }
+
+    .items {
+      margin: 8px 0 14px;
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .metric span { color: var(--muted); font-weight: 700; }
+    .metric strong { display: block; font-size: 30px; margin-top: 8px; }
+
+    .two-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .notice {
+      background: var(--warning);
+      border-color: #efd47a;
+      margin-bottom: 14px;
+      color: #634800;
+      font-weight: 750;
+      line-height: 1.45;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .mode-card {
+      background: #fff;
+      border: 2px solid var(--border);
+      border-radius: 26px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 430px;
+    }
+
+    .mode-card.selected {
+      border-color: var(--secondary);
+      box-shadow: 0 18px 38px rgba(31, 138, 112, 0.16);
+    }
+
+    .mode-number {
+      width: 46px;
+      height: 46px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: var(--soft);
+      color: var(--primary-dark);
+      font-size: 22px;
+      font-weight: 1000;
+    }
+
+    .mode-card.selected .mode-number {
+      background: var(--secondary);
+      color: #fff;
+    }
+
+    .mode-card h3 {
+      font-size: 26px;
+      line-height: 1.05;
+    }
+
+    .mode-card p {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 16px;
+    }
+
+    .mode-card ul {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+      line-height: 1.65;
+      font-weight: 650;
+    }
+
+    .mode-card .mode-bottom {
+      margin-top: auto;
+      display: grid;
+      gap: 10px;
+    }
+
+    .mode-status {
+      display: inline-flex;
+      width: fit-content;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--warning);
+      color: #745300;
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    .mode-status.ready {
+      background: #e9f8f3;
+      color: var(--secondary);
+    }
+
+    .current-mode-box {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .current-mode-box strong {
+      display: block;
+      font-size: 24px;
+      margin-top: 4px;
+    }
+
+    .config-preview {
+      background: #fffaf3;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 16px;
+      line-height: 1.65;
+      color: var(--muted);
+      font-weight: 650;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(45, 33, 24, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 80;
+      padding: 18px;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+    }
+
+    .modal {
+      width: min(540px, 100%);
+      background: white;
+      border-radius: 30px;
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 60px rgba(45, 33, 24, 0.24);
+      padding: 28px;
+      text-align: center;
+    }
+
+    .modal h2 {
+      font-size: 34px;
+      margin-bottom: 10px;
+    }
+
+    .modal p {
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.45;
+      margin-bottom: 18px;
+    }
+
+    .modal-total {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 20px;
+      border-radius: 18px;
+      background: var(--soft);
+      color: var(--primary-dark);
+      font-size: 30px;
+      font-weight: 1000;
+      margin-bottom: 18px;
+    }
+
+    .modal-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 560px) {
+      .modal-actions {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: #fff;
+      padding: 14px 18px;
+      border-radius: 16px;
+      font-weight: 800;
+      box-shadow: var(--shadow);
+      display: none;
+      z-index: 100;
+      max-width: calc(100% - 32px);
+      text-align: center;
+    }
+
+    .toast.show { display: block; }
+
+    @media (max-width: 960px) {
+      header { align-items: flex-start; flex-direction: column; }
+      nav { justify-content: flex-start; }
+      .hero, .layout, .two-cols { grid-template-columns: 1fr; }
+      .products { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .summary-grid { grid-template-columns: repeat(2, 1fr); }
+      .settings-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      main { padding: 14px; }
+      .products, .payment-grid, .summary-grid { grid-template-columns: 1fr; }
+      button { width: 100%; }
+      .actions { display: grid; }
+      .brand h1 { font-size: 22px; }
+      .hero { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">B</div>
+      <div>
+        <h1>Barraca Easy</h1>
+        <p>Caixa digital, senha física e fila interna em tempo real.</p>
+      </div>
+    </div>
+    <nav>
+      <button id="tab-caixa" class="active-tab" onclick="showScreen('caixa')">Caixa</button>
+      <button id="tab-producao" onclick="showScreen('producao')">Produção</button>
+      <button id="tab-fechamento" onclick="showScreen('fechamento')">Fechamento</button>
+      <button id="tab-configuracoes" onclick="showScreen('configuracoes')">Configurações</button>
+      <button class="btn-ghost" onclick="resetDay()">Limpar teste</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="caixa" class="screen active">
+      <div id="sale-view">
+        <div class="hero">
+          <div>
+            <h2>Pedido no caixa. Pagamento confirmado. Senha liberada.</h2>
+            <p>O caixa monta o pedido, aguarda o pagamento, entrega a senha física e envia a venda para a produção.</p>
+          </div>
+          <div class="hero-card">
+            <span>Fluxo real: pedido, pagamento, senha física e retirada.</span>
+            <strong>Easy</strong>
+          </div>
+        </div>
+
+        <div class="layout">
+          <div class="panel">
+            <div class="panel-title">
+              <h2>Lançar pedido</h2>
+              <span class="muted">Operação do caixa</span>
+            </div>
+            <div class="categories" id="categories"></div>
+            <div class="products" id="products"></div>
+          </div>
+
+          <aside class="panel">
+            <div class="panel-title">
+              <h2>Venda atual</h2>
+              <span class="muted" id="cart-count">0 itens</span>
+            </div>
+            <div id="cart-list" class="cart-list"></div>
+
+            <h3>Pagamento recebido</h3>
+            <div class="payment-grid">
+              <button onclick="selectPayment('Pix')" id="pay-Pix">Pix</button>
+              <button onclick="selectPayment('Cartão')" id="pay-Cartão">Cartão</button>
+              <button onclick="selectPayment('Dinheiro')" id="pay-Dinheiro">Dinheiro</button>
+            </div>
+
+            <div class="notice">
+              Após montar o pedido, confirme o pagamento no caixa. Só então entregue a senha física e informe o número liberado ao cliente.
+            </div>
+
+            <div class="total">
+              <span>Total</span>
+              <span id="cart-total">R$ 0,00</span>
+            </div>
+
+            <button class="btn-primary big-action" onclick="openPaymentModal()">Confirmar pedido</button>
+          </aside>
+        </div>
+      </div>
+
+      <div id="confirmed-view" class="ticket-screen" style="display:none;">
+        <div class="ticket-card">
+          <h2>Venda confirmada</h2>
+          <p class="muted">Senha registrada no sistema:</p>
+          <div class="ticket-number" id="confirmed-ticket">000</div>
+          <p id="confirmed-details" class="muted"></p>
+          <button class="btn-primary big-action" onclick="newSale()">Próximo cliente</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="producao" class="screen">
+      <div class="hero">
+        <div>
+          <h2>Fila de produção</h2>
+          <p>Os pedidos aparecem na ordem de confirmação do caixa. A equipe chama a senha física e marca como entregue.</p>
+        </div>
+        <div class="hero-card">
+          <span>Pedidos pendentes</span>
+          <strong id="open-orders-count">0</strong>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <h2>Pedidos em aberto</h2>
+          <button class="btn-ghost" onclick="renderAll()">Atualizar</button>
+        </div>
+        <div class="orders" id="orders-list"></div>
+      </div>
+    </section>
+
+    <section id="fechamento" class="screen">
+      <div class="hero">
+        <div>
+          <h2>Fechamento do dia</h2>
+          <p>Resumo das vendas confirmadas, pagamentos recebidos e status de entrega.</p>
+        </div>
+        <div class="hero-card">
+          <span>Total vendido</span>
+          <strong id="hero-total">R$ 0</strong>
+        </div>
+      </div>
+
+      <div class="summary-grid">
+        <div class="metric">
+          <span>Vendas confirmadas</span>
+          <strong id="metric-orders">0</strong>
+        </div>
+        <div class="metric">
+          <span>Entregues</span>
+          <strong id="metric-delivered">0</strong>
+        </div>
+        <div class="metric">
+          <span>Pendentes</span>
+          <strong id="metric-pending">0</strong>
+        </div>
+        <div class="metric">
+          <span>Ticket médio</span>
+          <strong id="metric-average">R$ 0</strong>
+        </div>
+      </div>
+
+      <div class="two-cols">
+        <div class="panel">
+          <div class="panel-title"><h2>Por pagamento</h2></div>
+          <div id="payment-summary"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title"><h2>Por produto</h2></div>
+          <div id="product-summary"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="configuracoes" class="screen">
+      <div class="hero">
+        <div>
+          <h2>Configurações do sistema</h2>
+          <p>Escolha o modo de operação da barraca. O modo padrão do MVP é o sincronizado com produção.</p>
+        </div>
+        <div class="hero-card">
+          <span>Modo atual</span>
+          <strong id="current-mode-hero">Sync</strong>
+        </div>
+      </div>
+
+      <div class="current-mode-box">
+        <div>
+          <span class="muted">Modo selecionado</span>
+          <strong id="current-mode-name">Sincronizado com Produção</strong>
+          <p class="muted" id="current-mode-description">Caixa em um tablet e produção em outro.</p>
+        </div>
+        <button class="btn-ghost" onclick="resetSettings()">Restaurar padrão</button>
+      </div>
+
+      <div class="settings-grid">
+        <div class="mode-card" id="mode-card-cashier_printer">
+          <div class="mode-number">1</div>
+          <div>
+            <h3>Caixa + Impressora</h3>
+            <p>O caixa registra o pedido, recebe o pagamento e entrega ou imprime a senha para o cliente.</p>
+          </div>
+          <div>
+            <strong>Ideal para:</strong>
+            <ul>
+              <li>Caixa tradicional</li>
+              <li>Senha impressa ou física</li>
+              <li>Operação com uma tela principal</li>
+            </ul>
+          </div>
+          <div class="config-preview">
+            Senha: sistema gera ou caixa informa<br>
+            Produção: opcional<br>
+            Impressora: preparada para fase futura
+          </div>
+          <div class="mode-bottom">
+            <span class="mode-status">Preparado para próxima fase</span>
+            <button class="btn-primary" onclick="selectOperationMode('cashier_printer')">Selecionar modo</button>
+          </div>
+        </div>
+
+        <div class="mode-card" id="mode-card-cashier_production_sync">
+          <div class="mode-number">2</div>
+          <div>
+            <h3>Sincronizado com Produção</h3>
+            <p>Um tablet fica no caixa e outro na produção. O caixa confirma pagamento, informa a senha física e a produção acompanha a fila.</p>
+          </div>
+          <div>
+            <strong>Ideal para:</strong>
+            <ul>
+              <li>Barraca com caixa externo</li>
+              <li>Senha física em papel</li>
+              <li>Equipe chamando senha em sequência</li>
+            </ul>
+          </div>
+          <div class="config-preview">
+            Senha: caixa informa senha física<br>
+            Produção: obrigatória<br>
+            Fluxo: pedido → pagamento → senha → produção
+          </div>
+          <div class="mode-bottom">
+            <span class="mode-status ready">Completo no MVP</span>
+            <button class="btn-secondary" onclick="selectOperationMode('cashier_production_sync')">Selecionar modo</button>
+          </div>
+        </div>
+
+        <div class="mode-card" id="mode-card-self_service_kiosk">
+          <div class="mode-number">3</div>
+          <div>
+            <h3>100% Autônomo</h3>
+            <p>O cliente escolhe os itens sozinho, paga, recebe a senha e o pedido vai para a produção.</p>
+          </div>
+          <div>
+            <strong>Ideal para:</strong>
+            <ul>
+              <li>Autoatendimento real</li>
+              <li>Redução de fila no caixa</li>
+              <li>Pix integrado no futuro</li>
+            </ul>
+          </div>
+          <div class="config-preview">
+            Senha: sistema gera automaticamente<br>
+            Produção: obrigatória<br>
+            Pagamento: preparado para integração futura
+          </div>
+          <div class="mode-bottom">
+            <span class="mode-status">Preparado para próxima fase</span>
+            <button class="btn-primary" onclick="selectOperationMode('self_service_kiosk')">Selecionar modo</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="payment-modal" class="modal-backdrop">
+    <div class="modal">
+      <h2>Aguardando pagamento</h2>
+      <p>Receba o pagamento do cliente no caixa. Depois de confirmado, entregue a senha física e informe o número liberado ao sistema.</p>
+      <div class="modal-total" id="modal-total">R$ 0,00</div>
+
+      <div class="field">
+        <label for="modal-ticket-input">Número da senha física liberada ao cliente</label>
+        <input id="modal-ticket-input" maxlength="6" inputmode="numeric" placeholder="Ex: 027" />
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-ghost" onclick="closePaymentModal()">Voltar ao pedido</button>
+        <button class="btn-secondary" onclick="confirmPaidAndCreateOrder()">Pagamento confirmado</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+    const products = [
+      { id: 'coxinha', name: 'Coxinha', category: 'Salgados', price: 8, emoji: '🥟' },
+      { id: 'pastel', name: 'Pastel', category: 'Salgados', price: 10, emoji: '🥟' },
+      { id: 'empada', name: 'Empada', category: 'Salgados', price: 9, emoji: '🥧' },
+      { id: 'bolo-pote', name: 'Bolo de pote', category: 'Doces', price: 12, emoji: '🍰' },
+      { id: 'brigadeiro', name: 'Brigadeiro', category: 'Doces', price: 4, emoji: '🍫' },
+      { id: 'pudim', name: 'Pudim', category: 'Doces', price: 7, emoji: '🍮' },
+      { id: 'bolo-fatia', name: 'Fatia de bolo', category: 'Bolos', price: 9, emoji: '🍰' },
+      { id: 'bolo-caseiro', name: 'Bolo caseiro', category: 'Bolos', price: 18, emoji: '🎂' },
+      { id: 'refrigerante', name: 'Refrigerante', category: 'Bebidas', price: 6, emoji: '🥤' },
+      { id: 'suco', name: 'Suco', category: 'Bebidas', price: 7, emoji: '🧃' },
+      { id: 'combo1', name: 'Combo salgado + refri', category: 'Combos', price: 14, emoji: '⚡' },
+      { id: 'combo2', name: 'Combo doce + café', category: 'Combos', price: 10, emoji: '☕' }
+    ];
+
+    let selectedCategory = 'Todos';
+    let cart = {};
+    let payment = null;
+
+    const state = loadState();
+
+    const operationModes = {
+      cashier_printer: {
+        short: 'Print',
+        name: 'Caixa + Impressora',
+        description: 'Caixa registra pedido, confirma pagamento e entrega ou imprime a senha.'
+      },
+      cashier_production_sync: {
+        short: 'Sync',
+        name: 'Sincronizado com Produção',
+        description: 'Caixa em um tablet e produção em outro, com senha física informada pelo caixa.'
+      },
+      self_service_kiosk: {
+        short: 'Auto',
+        name: '100% Autônomo',
+        description: 'Cliente faz o pedido sozinho, paga e envia para produção.'
+      }
+    };
+
+    let settings = loadSettings();
+
+    function loadState() {
+      const saved = localStorage.getItem('barracaEasyManualTicketState');
+      if (saved) return JSON.parse(saved);
+      return { orders: [] };
+    }
+
+    function loadSettings() {
+      const saved = localStorage.getItem('barracaEasySettings');
+      if (saved) return JSON.parse(saved);
+      return {
+        operationMode: 'cashier_production_sync',
+        deviceMode: 'cashier',
+        ticketMode: 'manual_physical_ticket',
+        usesProductionScreen: true,
+        customerSelfService: false,
+        paymentTiming: 'before_ticket'
+      };
+    }
+
+    function saveSettings() {
+      localStorage.setItem('barracaEasySettings', JSON.stringify(settings));
+    }
+
+    function saveState() {
+      localStorage.setItem('barracaEasyManualTicketState', JSON.stringify(state));
+    }
+
+    function showToast(message) {
+      const el = document.getElementById('toast');
+      el.textContent = message;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2600);
+    }
+
+    function normalizeTicket(value) {
+      return String(value || '').trim().replace(/\D/g, '').padStart(3, '0');
+    }
+
+    function showScreen(screen) {
+      document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+      document.getElementById(screen).classList.add('active');
+
+      document.querySelectorAll('nav button').forEach(el => el.classList.remove('active-tab'));
+      const tab = document.getElementById('tab-' + screen);
+      if (tab) tab.classList.add('active-tab');
+
+      renderAll();
+    }
+
+    function renderCategories() {
+      const categories = ['Todos', ...new Set(products.map(p => p.category))];
+      const wrap = document.getElementById('categories');
+      wrap.innerHTML = categories.map(cat => `
+        <button class="category-btn ${selectedCategory === cat ? 'selected' : ''}" onclick="selectCategory('${cat}')">${cat}</button>
+      `).join('');
+    }
+
+    function selectCategory(cat) {
+      selectedCategory = cat;
+      renderProducts();
+      renderCategories();
+    }
+
+    function renderProducts() {
+      const list = selectedCategory === 'Todos' ? products : products.filter(p => p.category === selectedCategory);
+      document.getElementById('products').innerHTML = list.map(p => `
+        <div class="product">
+          <div>
+            <div class="emoji">${p.emoji}</div>
+            <h3>${p.name}</h3>
+            <div class="price">${money.format(p.price)}</div>
+          </div>
+          <button class="btn-primary" onclick="addToCart('${p.id}')">Adicionar</button>
+        </div>
+      `).join('');
+    }
+
+    function addToCart(id) {
+      cart[id] = (cart[id] || 0) + 1;
+      renderCart();
+      showToast('Item adicionado');
+    }
+
+    function changeQty(id, delta) {
+      cart[id] = (cart[id] || 0) + delta;
+      if (cart[id] <= 0) delete cart[id];
+      renderCart();
+    }
+
+    function getCartItems() {
+      return Object.entries(cart).map(([id, qty]) => {
+        const product = products.find(p => p.id === id);
+        return { id, name: product.name, price: product.price, qty, subtotal: product.price * qty };
+      });
+    }
+
+    function cartTotal() {
+      return getCartItems().reduce((sum, item) => sum + item.subtotal, 0);
+    }
+
+    function renderCart() {
+      const items = getCartItems();
+      const count = items.reduce((sum, item) => sum + item.qty, 0);
+      document.getElementById('cart-count').textContent = `${count} ${count === 1 ? 'item' : 'itens'}`;
+      document.getElementById('cart-total').textContent = money.format(cartTotal());
+
+      const list = document.getElementById('cart-list');
+      if (!items.length) {
+        list.innerHTML = `<div class="empty">Venda vazia.<br>Adicione os itens do cliente.</div>`;
+        return;
+      }
+
+      list.innerHTML = items.map(item => `
+        <div class="cart-item">
+          <div>
+            <strong>${item.name}</strong><br>
+            <span class="muted">${money.format(item.price)} cada</span>
+          </div>
+          <div class="qty">
+            <button onclick="changeQty('${item.id}', -1)">−</button>
+            <strong>${item.qty}</strong>
+            <button onclick="changeQty('${item.id}', 1)">+</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function selectPayment(method) {
+      payment = method;
+      ['Pix', 'Cartão', 'Dinheiro'].forEach(m => {
+        const el = document.getElementById('pay-' + m);
+        if (el) el.classList.toggle('selected', m === method);
+      });
+    }
+
+    function openPaymentModal() {
+      if (settings.operationMode !== 'cashier_production_sync') {
+        showToast('Este modo está pré-configurado. O fluxo completo será implementado em fase futura.');
+      }
+
+      const items = getCartItems();
+
+      if (!items.length) return showToast('Adicione pelo menos um item.');
+      if (!payment) return showToast('Selecione a forma de pagamento.');
+
+      document.getElementById('modal-total').textContent = money.format(cartTotal());
+      document.getElementById('modal-ticket-input').value = '';
+      document.getElementById('payment-modal').classList.add('show');
+      setTimeout(() => document.getElementById('modal-ticket-input').focus(), 80);
+    }
+
+    function closePaymentModal() {
+      document.getElementById('payment-modal').classList.remove('show');
+    }
+
+    function confirmPaidAndCreateOrder() {
+      const items = getCartItems();
+      const rawTicket = document.getElementById('modal-ticket-input').value;
+      const ticket = normalizeTicket(rawTicket);
+
+      if (!items.length) {
+        closePaymentModal();
+        return showToast('Adicione pelo menos um item.');
+      }
+      if (!payment) {
+        closePaymentModal();
+        return showToast('Selecione a forma de pagamento.');
+      }
+      if (!rawTicket.trim()) return showToast('Informe a senha física liberada ao cliente.');
+
+      const duplicate = state.orders.find(o => o.ticket === ticket && o.status !== 'cancelado');
+      if (duplicate) return showToast(`A senha ${ticket} já foi usada hoje.`);
+
+      const order = {
+        id: 'order-' + Date.now(),
+        ticket,
+        items,
+        payment,
+        total: cartTotal(),
+        status: 'aguardando',
+        createdAt: new Date().toISOString(),
+        paidAt: new Date().toISOString(),
+        calledAt: null,
+        deliveredAt: null
+      };
+
+      state.orders.push(order);
+      saveState();
+      closePaymentModal();
+
+      document.getElementById('confirmed-ticket').textContent = ticket;
+      document.getElementById('confirmed-details').textContent = `${money.format(order.total)} • ${payment} confirmado`;
+      document.getElementById('sale-view').style.display = 'none';
+      document.getElementById('confirmed-view').style.display = 'grid';
+
+      renderAll();
+    }
+
+    function newSale() {
+      cart = {};
+      payment = null;
+      ['Pix', 'Cartão', 'Dinheiro'].forEach(m => {
+        const el = document.getElementById('pay-' + m);
+        if (el) el.classList.remove('selected');
+      });
+      document.getElementById('sale-view').style.display = 'block';
+      document.getElementById('confirmed-view').style.display = 'none';
+      renderAll();
+    }
+
+    function callOrder(id) {
+      const order = state.orders.find(o => o.id === id);
+      if (!order) return;
+      order.status = 'chamado';
+      order.calledAt = new Date().toISOString();
+      saveState();
+      renderAll();
+      showToast(`Senha ${order.ticket} chamada.`);
+    }
+
+    function deliverOrder(id) {
+      const order = state.orders.find(o => o.id === id);
+      if (!order) return;
+      order.status = 'entregue';
+      order.deliveredAt = new Date().toISOString();
+      saveState();
+      renderAll();
+      showToast(`Senha ${order.ticket} entregue.`);
+    }
+
+    function cancelOrder(id) {
+      const ok = confirm('Cancelar este pedido? Ele sairá da fila e do fechamento.');
+      if (!ok) return;
+      const order = state.orders.find(o => o.id === id);
+      if (!order) return;
+      order.status = 'cancelado';
+      saveState();
+      renderAll();
+      showToast(`Senha ${order.ticket} cancelada.`);
+    }
+
+    function renderOrders() {
+      const openOrders = state.orders
+        .filter(o => ['aguardando', 'chamado'].includes(o.status))
+        .sort((a, b) => Number(a.ticket) - Number(b.ticket));
+
+      document.getElementById('open-orders-count').textContent = openOrders.length;
+
+      const wrap = document.getElementById('orders-list');
+      if (!openOrders.length) {
+        wrap.innerHTML = `<div class="empty">Nenhum pedido em aberto agora.</div>`;
+        return;
+      }
+
+      wrap.innerHTML = openOrders.map(order => `
+        <div class="order-card">
+          <div class="order-head">
+            <div class="ticket-badge">${order.ticket}</div>
+            <div>
+              <strong>${money.format(order.total)}</strong><br>
+              <span class="muted">${order.payment}</span>
+            </div>
+            <span class="status ${order.status === 'chamado' ? 'called' : ''}">
+              ${order.status === 'chamado' ? 'Chamado' : 'Aguardando'}
+            </span>
+          </div>
+          <div class="items">
+            ${order.items.map(item => `${item.qty}x ${item.name}`).join('<br>')}
+          </div>
+          <div class="actions">
+            ${order.status === 'aguardando' ? `<button class="btn-primary" onclick="callOrder('${order.id}')">Chamar senha</button>` : ''}
+            <button class="btn-secondary" onclick="deliverOrder('${order.id}')">Entregue / OK</button>
+            <button class="btn-danger" onclick="cancelOrder('${order.id}')">Cancelar</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderSummary() {
+      const valid = state.orders.filter(o => o.status !== 'cancelado');
+      const delivered = valid.filter(o => o.status === 'entregue');
+      const pending = valid.filter(o => o.status !== 'entregue');
+
+      const total = valid.reduce((sum, o) => sum + o.total, 0);
+      const average = valid.length ? total / valid.length : 0;
+
+      document.getElementById('hero-total').textContent = money.format(total);
+      document.getElementById('metric-orders').textContent = valid.length;
+      document.getElementById('metric-delivered').textContent = delivered.length;
+      document.getElementById('metric-pending').textContent = pending.length;
+      document.getElementById('metric-average').textContent = money.format(average);
+
+      const paymentMap = {};
+      valid.forEach(o => paymentMap[o.payment] = (paymentMap[o.payment] || 0) + o.total);
+
+      const paymentRows = Object.entries(paymentMap);
+      document.getElementById('payment-summary').innerHTML = paymentRows.length
+        ? paymentRows.map(([method, value]) => `
+          <div class="summary-row">
+            <strong>${method}</strong>
+            <span>${money.format(value)}</span>
+          </div>
+        `).join('')
+        : `<div class="empty">Nenhuma venda confirmada ainda.</div>`;
+
+      const productMap = {};
+      valid.forEach(o => {
+        o.items.forEach(item => {
+          if (!productMap[item.name]) productMap[item.name] = { qty: 0, total: 0 };
+          productMap[item.name].qty += item.qty;
+          productMap[item.name].total += item.subtotal;
+        });
+      });
+
+      const productRows = Object.entries(productMap).sort((a, b) => b[1].qty - a[1].qty);
+      document.getElementById('product-summary').innerHTML = productRows.length
+        ? productRows.map(([name, data]) => `
+          <div class="summary-row">
+            <strong>${name}<br><span class="muted">${data.qty} un.</span></strong>
+            <span>${money.format(data.total)}</span>
+          </div>
+        `).join('')
+        : `<div class="empty">Nenhum item vendido ainda.</div>`;
+    }
+
+    function selectOperationMode(mode) {
+      if (mode === 'cashier_printer') {
+        settings = {
+          operationMode: 'cashier_printer',
+          deviceMode: 'cashier',
+          ticketMode: 'manual_or_system_generated',
+          usesProductionScreen: false,
+          customerSelfService: false,
+          paymentTiming: 'before_ticket'
+        };
+        showToast('Modo Caixa + Impressora selecionado. Algumas funções serão implementadas em fase futura.');
+      }
+
+      if (mode === 'cashier_production_sync') {
+        settings = {
+          operationMode: 'cashier_production_sync',
+          deviceMode: 'cashier',
+          ticketMode: 'manual_physical_ticket',
+          usesProductionScreen: true,
+          customerSelfService: false,
+          paymentTiming: 'before_ticket'
+        };
+        showToast('Modo Sincronizado com Produção selecionado.');
+      }
+
+      if (mode === 'self_service_kiosk') {
+        settings = {
+          operationMode: 'self_service_kiosk',
+          deviceMode: 'kiosk',
+          ticketMode: 'system_generated',
+          usesProductionScreen: true,
+          customerSelfService: true,
+          paymentTiming: 'before_production'
+        };
+        showToast('Modo 100% Autônomo selecionado. Fluxo completo fica para próxima fase.');
+      }
+
+      saveSettings();
+      renderAll();
+    }
+
+    function resetSettings() {
+      settings = {
+        operationMode: 'cashier_production_sync',
+        deviceMode: 'cashier',
+        ticketMode: 'manual_physical_ticket',
+        usesProductionScreen: true,
+        customerSelfService: false,
+        paymentTiming: 'before_ticket'
+      };
+      saveSettings();
+      renderAll();
+      showToast('Configuração padrão restaurada.');
+    }
+
+    function renderSettings() {
+      const mode = operationModes[settings.operationMode] || operationModes.cashier_production_sync;
+
+      const hero = document.getElementById('current-mode-hero');
+      const name = document.getElementById('current-mode-name');
+      const desc = document.getElementById('current-mode-description');
+
+      if (hero) hero.textContent = mode.short;
+      if (name) name.textContent = mode.name;
+      if (desc) desc.textContent = mode.description;
+
+      Object.keys(operationModes).forEach(key => {
+        const card = document.getElementById('mode-card-' + key);
+        if (card) card.classList.toggle('selected', key === settings.operationMode);
+      });
+
+      const saleHeroTitle = document.querySelector('#caixa .hero h2');
+      const saleHeroText = document.querySelector('#caixa .hero p');
+
+      if (saleHeroTitle && saleHeroText) {
+        if (settings.operationMode === 'cashier_printer') {
+          saleHeroTitle.textContent = 'Modo Caixa + Impressora';
+          saleHeroText.textContent = 'Protótipo preparado para caixa com senha impressa ou física. Nesta fase, o fluxo ainda usa confirmação manual.';
+        } else if (settings.operationMode === 'self_service_kiosk') {
+          saleHeroTitle.textContent = 'Modo 100% Autônomo';
+          saleHeroText.textContent = 'Modo preparado para próxima fase. O fluxo completo de cliente autônomo e pagamento integrado ainda não foi implementado.';
+        } else {
+          saleHeroTitle.textContent = 'Pedido no caixa. Pagamento confirmado. Senha liberada.';
+          saleHeroText.textContent = 'O caixa monta o pedido, aguarda o pagamento, entrega a senha física e envia a venda para a produção.';
+        }
+      }
+    }
+
+    function resetDay() {
+      const ok = confirm('Limpar todos os pedidos deste teste?');
+      if (!ok) return;
+      localStorage.removeItem('barracaEasyManualTicketState');
+      location.reload();
+    }
+
+    function renderAll() {
+      renderCategories();
+      renderProducts();
+      renderCart();
+      renderOrders();
+      renderSummary();
+      renderSettings();
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>
