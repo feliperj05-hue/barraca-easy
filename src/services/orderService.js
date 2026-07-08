@@ -50,6 +50,12 @@ export function createOrder({ items, payment, total, ticket }) {
   }
 
   const normalized = normalizeTicket(ticket)
+  // Senha sem dígitos válidos (ex: "abc" ou "0") normaliza para "000":
+  // rejeita para não criar pedido com senha zerada (#17).
+  if (!/[1-9]/.test(normalized)) {
+    throw new Error('Informe uma senha numérica válida (ex: 27).')
+  }
+
   const state = load()
   if (isTicketTaken(normalized, state.orders)) {
     throw new Error(`A senha ${normalized} já foi usada hoje.`)
