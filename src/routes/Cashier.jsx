@@ -62,7 +62,7 @@ export default function Cashier({ settings, onCreateOrder, notify }) {
 
   function openModal() {
     if (settings.operationMode !== 'cashier_production_sync') {
-      notify('Este modo está pré-configurado. O fluxo completo será implementado em fase futura.')
+      return notify('Este modo está pré-configurado. O fluxo completo será implementado em fase futura.')
     }
     if (!items.length) return notify('Adicione pelo menos um item.')
     if (!payment) return notify('Selecione a forma de pagamento.')
