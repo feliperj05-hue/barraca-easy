@@ -85,3 +85,8 @@ npm run dev
 3. Implementar telas Caixa, Produção, Fechamento e Configurações.
 4. Garantir fluxo completo do modo Sincronizado com Produção.
 5. Só depois conectar Firebase.
+
+## Deploy
+
+Publicacao em Firebase Hosting (build estatico do Vite). Passo a passo,
+pipeline de CI/CD e os segredos necessarios estao em [DEPLOY.md](DEPLOY.md).
