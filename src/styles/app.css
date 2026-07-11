@@ -740,3 +740,230 @@ input:focus {
     padding: 20px;
   }
 }
+
+/* ===== Cardápio (admin) ===== */
+.menu-toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.menu-group {
+  margin-bottom: 22px;
+}
+
+.menu-group-title {
+  font-size: 18px;
+  color: var(--primary-dark);
+  margin-bottom: 10px;
+}
+
+.menu-list {
+  display: grid;
+  gap: 10px;
+}
+
+.menu-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto auto;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--border);
+  background: #fffaf3;
+  border-radius: 18px;
+  padding: 12px 14px;
+}
+
+.menu-row.is-hidden {
+  opacity: 0.6;
+}
+
+.menu-row-emoji {
+  font-size: 34px;
+  text-align: center;
+}
+
+.menu-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.menu-row-info strong {
+  font-size: 17px;
+}
+
+.menu-row-info .muted {
+  font-size: 13px;
+}
+
+.menu-row-tag {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.menu-row-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.menu-row-price-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.price-input {
+  width: 96px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 18px;
+  font-weight: 900;
+  text-align: center;
+  color: var(--secondary);
+  background: #fff;
+  font-family: inherit;
+  outline: none;
+}
+
+.price-input:focus {
+  border-color: var(--primary);
+}
+
+.menu-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.toggle-btn {
+  border: 2px solid var(--border);
+  background: #fff;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.toggle-btn.on {
+  border-color: var(--secondary);
+  background: #e7f5f0;
+  color: var(--secondary);
+}
+
+.btn-ghost.small,
+.btn-danger.small {
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* Formulário de item (modal) */
+.menu-form {
+  text-align: left;
+}
+
+.menu-form h2 {
+  text-align: center;
+}
+
+.menu-form .text-input {
+  width: 100%;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 17px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--text);
+  background: #fffaf3;
+  font-family: inherit;
+  outline: none;
+}
+
+.menu-form textarea.text-input {
+  resize: vertical;
+  min-height: 64px;
+}
+
+.menu-form .text-input:focus {
+  border-color: var(--primary);
+}
+
+.emoji-preview {
+  font-size: 42px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.emoji-picker {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  max-height: 168px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.emoji-option {
+  font-size: 24px;
+  padding: 6px 0;
+  border-radius: 10px;
+  background: transparent;
+  border: 2px solid transparent;
+}
+
+.emoji-option.selected {
+  border-color: var(--primary);
+  background: var(--soft);
+}
+
+.form-error {
+  color: var(--danger);
+  font-weight: 800;
+  font-size: 15px;
+  margin: 6px 0 0;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .menu-row {
+    grid-template-columns: 48px 1fr;
+    grid-template-areas:
+      'emoji info'
+      'price price'
+      'actions actions';
+  }
+  .menu-row-emoji {
+    grid-area: emoji;
+  }
+  .menu-row-info {
+    grid-area: info;
+  }
+  .menu-row-price {
+    grid-area: price;
+    align-items: flex-start;
+  }
+  .menu-row-actions {
+    grid-area: actions;
+    justify-content: flex-start;
+  }
+  .emoji-picker {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
