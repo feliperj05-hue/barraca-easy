@@ -1,4 +1,4 @@
-export default function Layout({ screens, current, onNavigate, onResetDay, children }) {
+export default function Layout({ screens, current, onNavigate, children }) {
   return (
     <div className="app">
       <header className="app-header">
@@ -20,9 +20,6 @@ export default function Layout({ screens, current, onNavigate, onResetDay, child
               {s.label}
             </button>
           ))}
-          <button type="button" className="btn-ghost" onClick={onResetDay}>
-            Limpar dia
-          </button>
         </nav>
       </header>
       <main className="app-main">{children}</main>
