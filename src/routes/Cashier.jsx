@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import ProductGrid from '../components/ProductGrid.jsx'
 import CartPanel from '../components/CartPanel.jsx'
 import PaymentModal from '../components/PaymentModal.jsx'
-import { getProducts, getCategories, findProduct } from '../services/productService.js'
+import { getVisibleProducts, getCategories, findProduct } from '../services/productService.js'
 import { formatBRL } from '../utils/money.js'
 
 const HERO_BY_MODE = {
@@ -20,8 +20,11 @@ const HERO_BY_MODE = {
   },
 }
 
-export default function Cashier({ settings, onCreateOrder, notify }) {
-  const products = getProducts()
+export default function Cashier({ settings, menu, onCreateOrder, notify }) {
+  // menu (prop) força re-render quando o cardápio muda; a lista efetiva vem
+  // sempre do service (itens visíveis, preços atuais).
+  void menu
+  const products = getVisibleProducts()
   const categories = getCategories()
   const [selectedCategory, setSelectedCategory] = useState('Todos')
   const [cart, setCart] = useState({})
@@ -36,10 +39,13 @@ export default function Cashier({ settings, onCreateOrder, notify }) {
 
   const items = useMemo(
     () =>
-      Object.entries(cart).map(([id, qty]) => {
-        const product = findProduct(id)
-        return { id, name: product.name, price: product.price, qty, subtotal: product.price * qty }
-      }),
+      Object.entries(cart)
+        .map(([id, qty]) => {
+          const product = findProduct(id)
+          if (!product) return null
+          return { id, name: product.name, price: product.price, qty, subtotal: product.price * qty }
+        })
+        .filter(Boolean),
     [cart],
   )
   const count = items.reduce((sum, item) => sum + item.qty, 0)
