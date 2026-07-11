@@ -14,9 +14,12 @@ export function summarize(orders) {
     paymentMap[o.payment] = (paymentMap[o.payment] || 0) + o.total
   })
 
+  const categoryMap = {}
   const productMap = {}
   valid.forEach((o) => {
     o.items.forEach((item) => {
+      const category = item.category || 'Sem categoria'
+      categoryMap[category] = (categoryMap[category] || 0) + item.subtotal
       if (!productMap[item.name]) productMap[item.name] = { qty: 0, total: 0 }
       productMap[item.name].qty += item.qty
       productMap[item.name].total += item.subtotal
@@ -30,7 +33,12 @@ export function summarize(orders) {
     pending: pending.length,
     cancelled: cancelled.length,
     average,
-    byPayment: Object.entries(paymentMap).map(([method, value]) => ({ method, value })),
+    byPayment: Object.entries(paymentMap)
+      .map(([method, value]) => ({ method, value }))
+      .sort((a, b) => b.value - a.value),
+    byCategory: Object.entries(categoryMap)
+      .map(([category, value]) => ({ category, value }))
+      .sort((a, b) => b.value - a.value),
     byProduct: Object.entries(productMap)
       .map(([name, data]) => ({ name, qty: data.qty, total: data.total }))
       .sort((a, b) => b.qty - a.qty),

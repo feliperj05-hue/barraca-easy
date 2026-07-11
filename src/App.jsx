@@ -23,6 +23,8 @@ import {
   removeCustomItem,
   resetMenu,
 } from './services/productService.js'
+import { getClosings, createClosing } from './services/closingsService.js'
+import { downloadClosingReport } from './services/reportService.js'
 
 const SCREENS = [
   { id: 'cashier', label: 'Caixa' },
@@ -37,6 +39,7 @@ export default function App() {
   const [orders, setOrders] = useState(() => getOrders())
   const [settings, setSettings] = useState(() => getSettings())
   const [menu, setMenu] = useState(() => getMenu())
+  const [closings, setClosings] = useState(() => getClosings())
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
 
@@ -78,12 +81,6 @@ export default function App() {
     [notify],
   )
 
-  const handleResetDay = useCallback(() => {
-    if (!window.confirm('Limpar todos os pedidos deste dia?')) return
-    setOrders([...clearOrders()])
-    notify('Pedidos limpos.')
-  }, [notify])
-
   const handleSelectMode = useCallback(
     (modeKey, modeName) => {
       setSettings(selectMode(modeKey))
@@ -108,7 +105,6 @@ export default function App() {
 
   const handleToggleHidden = useCallback(
     (id, hidden) => {
-      // Defaults usam override; itens custom guardam hidden no próprio item.
       const isCustom = id.startsWith('custom-')
       const next = isCustom
         ? updateCustomItem(id, { hidden })
@@ -150,8 +146,34 @@ export default function App() {
     notify('Cardápio padrão restaurado.')
   }, [notify])
 
+  // --- Fechamento de caixa ---
+  const handleCloseRegister = useCallback(() => {
+    const hasValidSales = orders.some((o) => o.status !== 'cancelado')
+    if (!hasValidSales) {
+      notify('Nenhuma venda confirmada para fechar.')
+      return
+    }
+    if (!window.confirm('Tem certeza? Isso vai fechar o caixa e zerar a produção.')) return
+    createClosing(orders)
+    clearOrders()
+    setOrders([])
+    setClosings(getClosings())
+    notify('Caixa fechado. Relatório disponível no histórico.')
+  }, [orders, notify])
+
+  const handleDownloadReport = useCallback(
+    async (closing) => {
+      try {
+        await downloadClosingReport(closing)
+      } catch {
+        notify('Falha ao gerar o relatório.')
+      }
+    },
+    [notify],
+  )
+
   return (
-    <Layout screens={SCREENS} current={screen} onNavigate={setScreen} onResetDay={handleResetDay}>
+    <Layout screens={SCREENS} current={screen} onNavigate={setScreen}>
       {screen === 'cashier' && (
         <Cashier
           settings={settings}
@@ -168,7 +190,14 @@ export default function App() {
           onCancel={handleCancel}
         />
       )}
-      {screen === 'closing' && <Closing orders={orders} />}
+      {screen === 'closing' && (
+        <Closing
+          orders={orders}
+          closings={closings}
+          onCloseRegister={handleCloseRegister}
+          onDownloadReport={handleDownloadReport}
+        />
+      )}
       {screen === 'menu' && (
         <MenuAdmin
           menu={menu}

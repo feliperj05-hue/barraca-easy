@@ -43,7 +43,14 @@ export default function Cashier({ settings, menu, onCreateOrder, notify }) {
         .map(([id, qty]) => {
           const product = findProduct(id)
           if (!product) return null
-          return { id, name: product.name, price: product.price, qty, subtotal: product.price * qty }
+          return {
+            id,
+            name: product.name,
+            category: product.category,
+            price: product.price,
+            qty,
+            subtotal: product.price * qty,
+          }
         })
         .filter(Boolean),
     [cart],

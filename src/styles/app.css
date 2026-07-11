@@ -967,3 +967,39 @@ input:focus {
     grid-template-columns: repeat(6, 1fr);
   }
 }
+
+/* ===== Fechamento de caixa ===== */
+.close-register {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--soft);
+}
+
+.close-register p {
+  margin-top: 4px;
+  max-width: 520px;
+}
+
+.close-register .btn-primary {
+  white-space: nowrap;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary.small {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
