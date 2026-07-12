@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Env / secrets — nunca commitar valores reais.
+# .env.example (placeholders) e versionado; o resto e ignorado.
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
