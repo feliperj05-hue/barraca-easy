@@ -1003,3 +1003,34 @@ button:disabled {
   font-weight: 800;
   white-space: nowrap;
 }
+
+/* Indicador de status da nuvem (Supabase) na tela de Configuracoes. */
+.cloud-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.cloud-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #9ca3af;
+  flex: none;
+}
+
+.cloud-status[data-status='ok'] .cloud-status-dot {
+  background: #16a34a;
+}
+
+.cloud-status[data-status='error'] .cloud-status-dot {
+  background: #dc2626;
+}
+
+.cloud-status[data-status='checking'] .cloud-status-dot {
+  background: #f59e0b;
+}
