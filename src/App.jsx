@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Layout from './components/Layout.jsx'
 import Toast from './components/Toast.jsx'
 import Cashier from './routes/Cashier.jsx'
@@ -18,12 +18,14 @@ import {
 } from './services/orderService.js'
 import { getSettings, selectMode, resetSettings } from './services/settingsService.js'
 import {
-  getMenu,
-  setDefaultOverride,
-  addCustomItem,
-  updateCustomItem,
-  removeCustomItem,
-  resetMenu,
+  fetchMenu,
+  ensureSeeded,
+  setPrice as svcSetPrice,
+  toggleHidden as svcToggleHidden,
+  addItem as svcAddItem,
+  updateItem as svcUpdateItem,
+  removeItem as svcRemoveItem,
+  resetMenu as svcResetMenu,
 } from './services/productService.js'
 import { getClosings, createClosing } from './services/closingsService.js'
 import { downloadClosingReport } from './services/reportService.js'
@@ -51,7 +53,7 @@ export default function App() {
   const [screen, setScreen] = useState('cashier')
   const [orders, setOrders] = useState(() => getOrders())
   const [settings, setSettings] = useState(() => getSettings())
-  const [menu, setMenu] = useState(() => getMenu())
+  const [menu, setMenu] = useState([])
   const [closings, setClosings] = useState(() => getClosings())
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
@@ -64,6 +66,30 @@ export default function App() {
     clearTimeout(toastTimer.current)
     toastTimer.current = setTimeout(() => setToast(null), 2600)
   }, [])
+
+  // Contexto do cardapio: com tenant os dados vao para a nuvem (Supabase);
+  // sem tenant (modo local) caem no localStorage.
+  const menuCtx = useMemo(
+    () => (membership && membership.tenantId ? { tenantId: membership.tenantId } : null),
+    [membership],
+  )
+
+  // Carrega o cardapio (local ou nuvem) e semeia os padrao num tenant novo.
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      try {
+        await ensureSeeded(menuCtx)
+        const list = await fetchMenu(menuCtx)
+        if (active) setMenu(list)
+      } catch {
+        if (active) notify('Falha ao carregar o cardápio.')
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [menuCtx, notify])
 
   const handleCreateOrder = useCallback(
     (payload) => {
@@ -109,57 +135,77 @@ export default function App() {
     notify('Configuração padrão restaurada.')
   }, [notify])
 
-  // --- Cardápio ---
+  // --- Cardápio (async: local ou nuvem, conforme o menuCtx) ---
   const handleSetPrice = useCallback(
-    (id, price) => {
-      setMenu([...setDefaultOverride(id, { price })])
-      notify('Preço atualizado.')
+    async (id, price) => {
+      try {
+        setMenu(await svcSetPrice(menuCtx, id, price))
+        notify('Preço atualizado.')
+      } catch {
+        notify('Falha ao atualizar o preço.')
+      }
     },
-    [notify],
+    [menuCtx, notify],
   )
 
   const handleToggleHidden = useCallback(
-    (id, hidden) => {
-      const isCustom = id.startsWith('custom-')
-      const next = isCustom
-        ? updateCustomItem(id, { hidden })
-        : setDefaultOverride(id, { hidden })
-      setMenu([...next])
-      notify(hidden ? 'Item ocultado.' : 'Item visível.')
+    async (id, hidden) => {
+      try {
+        setMenu(await svcToggleHidden(menuCtx, id, hidden))
+        notify(hidden ? 'Item ocultado.' : 'Item visível.')
+      } catch {
+        notify('Falha ao atualizar a visibilidade.')
+      }
     },
-    [notify],
+    [menuCtx, notify],
   )
 
   const handleAddItem = useCallback(
-    (payload) => {
-      setMenu([...addCustomItem(payload)])
-      notify('Item adicionado ao cardápio.')
+    async (payload) => {
+      try {
+        setMenu(await svcAddItem(menuCtx, payload))
+        notify('Item adicionado ao cardápio.')
+      } catch {
+        notify('Falha ao adicionar o item.')
+      }
     },
-    [notify],
+    [menuCtx, notify],
   )
 
   const handleUpdateItem = useCallback(
-    (id, patch) => {
-      setMenu([...updateCustomItem(id, patch)])
-      notify('Item atualizado.')
+    async (id, patch) => {
+      try {
+        setMenu(await svcUpdateItem(menuCtx, id, patch))
+        notify('Item atualizado.')
+      } catch {
+        notify('Falha ao atualizar o item.')
+      }
     },
-    [notify],
+    [menuCtx, notify],
   )
 
   const handleRemoveItem = useCallback(
-    (item) => {
+    async (item) => {
       if (!window.confirm(`Remover "${item.name}" do cardápio?`)) return
-      setMenu([...removeCustomItem(item.id)])
-      notify('Item removido.')
+      try {
+        setMenu(await svcRemoveItem(menuCtx, item.id))
+        notify('Item removido.')
+      } catch {
+        notify('Falha ao remover o item.')
+      }
     },
-    [notify],
+    [menuCtx, notify],
   )
 
-  const handleResetMenu = useCallback(() => {
+  const handleResetMenu = useCallback(async () => {
     if (!window.confirm('Restaurar o cardápio padrão? As customizações serão perdidas.')) return
-    setMenu([...resetMenu()])
-    notify('Cardápio padrão restaurado.')
-  }, [notify])
+    try {
+      setMenu(await svcResetMenu(menuCtx))
+      notify('Cardápio padrão restaurado.')
+    } catch {
+      notify('Falha ao restaurar o cardápio.')
+    }
+  }, [menuCtx, notify])
 
   // --- Fechamento de caixa ---
   const handleCloseRegister = useCallback(() => {
