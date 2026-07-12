@@ -105,3 +105,24 @@ Opcao B (manual, via Google Cloud Console):
       o projeto Firebase e configurar `FIREBASE_SERVICE_ACCOUNT` +
       `FIREBASE_PROJECT_ID` (ou rodar `firebase deploy` manual autenticado).
 - [x] Branch estavel validada (lint + build) antes do deploy de producao.
+
+## GitHub Pages + credenciais Supabase (Fase 1 SaaS)
+
+O deploy ativo da Fase 1 e o **GitHub Pages** (`.github/workflows/pages.yml`),
+URL `https://feliperj05-hue.github.io/barraca-easy/`. Como o hosting e estatico,
+as credenciais publicas do Supabase sao **assadas no bundle** durante o
+`vite build`, a partir de **Repository Variables** (nao Secrets — a publishable
+key e publica por design e protegida por Row-Level Security).
+
+Em **Settings > Secrets and variables > Actions > aba Variables** do repo,
+crie no nivel de repositorio (case-sensitive):
+
+| Nome | Valor |
+|---|---|
+| `VITE_SUPABASE_URL` | URL do projeto (`https://<ref>.supabase.co`) |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_...` |
+
+O job de build expoe essas variaveis via `env:` (`${{ vars.* }}`) e um step
+`Check Supabase env vars` **falha o build** caso alguma esteja vazia, evitando
+publicar um bundle com credenciais `undefined`. Nunca coloque aqui a
+`service_role` key (secreta, server-side).
