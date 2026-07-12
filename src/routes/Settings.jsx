@@ -1,4 +1,5 @@
 import OperationModeCard from '../components/OperationModeCard.jsx'
+import CloudStatus from '../components/CloudStatus.jsx'
 import { getModeList, getCurrentMode } from '../services/settingsService.js'
 
 export default function Settings({ settings, onSelectMode, onResetSettings }) {
@@ -26,6 +27,7 @@ export default function Settings({ settings, onSelectMode, onResetSettings }) {
           <span className="muted">Modo selecionado</span>
           <strong>{current.name}</strong>
           <p className="muted">{current.description}</p>
+          <CloudStatus />
         </div>
         <button type="button" className="btn-ghost" onClick={onResetSettings}>
           Restaurar padrão
