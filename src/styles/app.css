@@ -1034,3 +1034,163 @@ button:disabled {
 .cloud-status[data-status='checking'] .cloud-status-dot {
   background: #f59e0b;
 }
+
+/* ===== Auth (login / onboarding) ===== */
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f3f4f6;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.auth-brand h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background: #f3f4f6;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.auth-tab.active {
+  background: #111827;
+  color: #fff;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auth-form label,
+.member-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.auth-form input,
+.member-form input,
+.member-form select {
+  padding: 12px 14px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+.auth-error {
+  color: #dc2626;
+  font-weight: 700;
+  margin: 0;
+}
+
+.auth-info {
+  color: #2563eb;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ===== Header account / logout ===== */
+.app-account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.account-info {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.account-role {
+  text-transform: capitalize;
+  color: #111827;
+}
+
+/* ===== Membros ===== */
+.member-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.member-form .btn-primary {
+  height: 48px;
+}
+
+.member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: #fff;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.member-you {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.member-badge {
+  text-transform: capitalize;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+.member-badge.dono {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.member-badge.operador {
+  background: #eff6ff;
+  color: #1d4ed8;
+}

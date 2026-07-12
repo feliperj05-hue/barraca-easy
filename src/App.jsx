@@ -6,6 +6,8 @@ import Production from './routes/Production.jsx'
 import Closing from './routes/Closing.jsx'
 import MenuAdmin from './routes/MenuAdmin.jsx'
 import Settings from './routes/Settings.jsx'
+import Members from './routes/Members.jsx'
+import { useAuth } from './auth/AuthContext.jsx'
 import {
   getOrders,
   createOrder,
@@ -26,15 +28,26 @@ import {
 import { getClosings, createClosing } from './services/closingsService.js'
 import { downloadClosingReport } from './services/reportService.js'
 
-const SCREENS = [
-  { id: 'cashier', label: 'Caixa' },
-  { id: 'production', label: 'Produção' },
-  { id: 'closing', label: 'Fechamento' },
-  { id: 'menu', label: 'Cardápio' },
-  { id: 'settings', label: 'Configurações' },
+// Telas e quais papeis podem ve-las. Operador opera o caixa; dono gerencia
+// tudo. Sem papel (modo local sem nuvem) libera tudo.
+const ALL_SCREENS = [
+  { id: 'cashier', label: 'Caixa', roles: ['dono', 'operador'] },
+  { id: 'production', label: 'Produção', roles: ['dono', 'operador'] },
+  { id: 'closing', label: 'Fechamento', roles: ['dono'] },
+  { id: 'menu', label: 'Cardápio', roles: ['dono'] },
+  { id: 'members', label: 'Membros', roles: ['dono'] },
+  { id: 'settings', label: 'Configurações', roles: ['dono'] },
 ]
 
 export default function App() {
+  const { role, membership, user, session, signOut } = useAuth()
+
+  // role null => modo local (sem nuvem) ou dono; libera tudo exceto quando
+  // explicitamente for 'operador'.
+  const visibleScreens = ALL_SCREENS.filter(
+    (s) => role == null || s.roles.includes(role),
+  )
+
   const [screen, setScreen] = useState('cashier')
   const [orders, setOrders] = useState(() => getOrders())
   const [settings, setSettings] = useState(() => getSettings())
@@ -43,13 +56,15 @@ export default function App() {
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
 
+  // Garante que o operador nunca fique numa tela que nao pode ver.
+  const currentScreen = visibleScreens.some((s) => s.id === screen) ? screen : 'cashier'
+
   const notify = useCallback((message) => {
     setToast(message)
     clearTimeout(toastTimer.current)
     toastTimer.current = setTimeout(() => setToast(null), 2600)
   }, [])
 
-  // Cria o pedido via service; retorna a ordem criada ou null (e avisa o erro).
   const handleCreateOrder = useCallback(
     (payload) => {
       try {
@@ -173,8 +188,16 @@ export default function App() {
   )
 
   return (
-    <Layout screens={SCREENS} current={screen} onNavigate={setScreen}>
-      {screen === 'cashier' && (
+    <Layout
+      screens={visibleScreens}
+      current={currentScreen}
+      onNavigate={setScreen}
+      userLabel={(user && user.email) || null}
+      tenantLabel={(membership && membership.tenantNome) || null}
+      role={role}
+      onLogout={session ? signOut : null}
+    >
+      {currentScreen === 'cashier' && (
         <Cashier
           settings={settings}
           menu={menu}
@@ -182,7 +205,7 @@ export default function App() {
           notify={notify}
         />
       )}
-      {screen === 'production' && (
+      {currentScreen === 'production' && (
         <Production
           orders={orders}
           onCall={handleCall}
@@ -190,7 +213,7 @@ export default function App() {
           onCancel={handleCancel}
         />
       )}
-      {screen === 'closing' && (
+      {currentScreen === 'closing' && (
         <Closing
           orders={orders}
           closings={closings}
@@ -198,7 +221,7 @@ export default function App() {
           onDownloadReport={handleDownloadReport}
         />
       )}
-      {screen === 'menu' && (
+      {currentScreen === 'menu' && (
         <MenuAdmin
           menu={menu}
           onSetPrice={handleSetPrice}
@@ -209,7 +232,8 @@ export default function App() {
           onResetMenu={handleResetMenu}
         />
       )}
-      {screen === 'settings' && (
+      {currentScreen === 'members' && <Members />}
+      {currentScreen === 'settings' && (
         <Settings
           settings={settings}
           onSelectMode={handleSelectMode}
