@@ -61,21 +61,16 @@ export async function loadMembership() {
   }
 }
 
-// Bootstrap: cria o tenant e vincula o usuario logado como dono.
-// (Onboarding minimo; o #30 formaliza o cadastro completo.)
-export async function createTenantAsOwner(nome, userId) {
-  const client = requireClient()
-  const { data: tenant, error: e1 } = await client
-    .from('tenants')
-    .insert({ nome: nome.trim() })
-    .select('id, nome')
-    .single()
-  if (e1) throw e1
-  const { error: e2 } = await client
-    .from('membros')
-    .insert({ tenant_id: tenant.id, user_id: userId, papel: 'dono' })
-  if (e2) throw e2
-  return tenant
+// Onboarding (#30): cria o tenant e vincula o usuario logado como dono
+// numa unica transacao coerente, via RPC SECURITY DEFINER. O vinculo do
+// dono e sempre auth.uid() no servidor, por isso a funcao nao recebe userId.
+export async function createTenantAsOwner(nome) {
+  const { data, error } = await requireClient().rpc('create_tenant_with_owner', {
+    p_nome: nome,
+  })
+  if (error) throw error
+  // A RPC retorna table(id, nome) -> array com uma unica linha.
+  return Array.isArray(data) ? data[0] : data
 }
 
 // Lista membros do tenant (via RPC SECURITY DEFINER, traz e-mail).
