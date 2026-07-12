@@ -86,6 +86,29 @@ produtos do tenant e re-semeia os padrao.
 Aplicar do mesmo jeito das anteriores (SQL Editor, script idempotente:
 `add column if not exists`).
 
+## Pedidos e producao na nuvem (#32)
+
+Pedidos e a fila de producao passaram a ser **online-first**: `pedidos` +
+`pedido_itens`, isolados por RLS por tenant. Sem credenciais Supabase, o app
+continua no modo local (localStorage), sem alteracao.
+
+Migration `migrations/20260712160000_create_order_rpc.sql`:
+
+- RPC `create_order(p_tenant_id, p_senha, p_forma_pagamento, p_total, p_itens)`
+  — cria o pedido + itens numa **unica transacao** (sem pedido orfao). A regra
+  de **senha unica por dia** e garantida pelo indice parcial
+  `pedidos_senha_dia_unica` (da #28); a RPC traduz a violacao numa mensagem
+  amigavel ("A senha X ja foi usada hoje"). Cancelado libera o numero.
+  SECURITY DEFINER, grant so para `authenticated`. Idempotente
+  (`create or replace`).
+
+As transicoes de status (chamar / entregar / cancelar) sao `update` direto no
+client, restritas ao tenant pela policy `pedidos_all`. "Fechar caixa" apaga os
+pedidos do tenant (o snapshot do relatorio ainda e local; os fechamentos migram
+na #33).
+
+Aplicar do mesmo jeito das anteriores (SQL Editor, script idempotente).
+
 ### O que conferir no painel do Supabase
 - **Authentication > Providers > Email**: habilitado.
 - **Confirm email**: LIGADO (decisao do produto). Consequencia: todo usuario novo
