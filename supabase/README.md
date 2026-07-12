@@ -65,6 +65,27 @@ coerente. RPC adicionada em `migrations/20260712140000_onboarding_tenant_rpc.sql
 Substitui os dois inserts client-side (`tenants` + `membros`) que o onboarding
 minimo da #29 usava. Aplicar do mesmo jeito (SQL Editor, script idempotente).
 
+## Cardapio na nuvem — produtos (#31)
+
+O cardapio passou a ser **online-first**: cada produto e uma linha em `produtos`
+(isolada por RLS por tenant). Sem credenciais Supabase, o app continua no modo
+local (localStorage), sem alteracao.
+
+Migration `migrations/20260712150000_produtos_seed_flag.sql`:
+
+- Adiciona a coluna `seed boolean not null default false` em `produtos`. Marca os
+  itens vindos do **seed padrao** (tag "Padrao" na tela Cardapio, so
+  reprecificaveis/ocultaveis) versus os "Criado por voce" (`seed = false`,
+  editaveis/removiveis). Preserva o comportamento da tela.
+
+Seed dos padrao: feito **no client**, a partir do unico source `DEFAULT_PRODUCTS`
+(em `src/services/productService.js`), quando o cardapio do tenant esta vazio
+(no primeiro carregamento apos o onboarding). "Restaurar cardapio" apaga os
+produtos do tenant e re-semeia os padrao.
+
+Aplicar do mesmo jeito das anteriores (SQL Editor, script idempotente:
+`add column if not exists`).
+
 ### O que conferir no painel do Supabase
 - **Authentication > Providers > Email**: habilitado.
 - **Confirm email**: LIGADO (decisao do produto). Consequencia: todo usuario novo
