@@ -3,8 +3,8 @@ import { useAuth } from '../auth/AuthContext.jsx'
 import { createTenantAsOwner } from '../services/authService.js'
 
 // Estado "sem barraca": o usuario esta logado mas ainda nao tem tenant.
-// Bootstrap minimo (cria tenant + vincula como dono) para a #29 ser
-// testavel de ponta a ponta. O #30 formaliza o onboarding completo.
+// Onboarding minimo (#30): criar a barraca gera o tenant + o vinculo do
+// dono numa unica transacao coerente (RPC create_tenant_with_owner).
 export default function Onboarding() {
   const { user, refreshMembership, signOut } = useAuth()
   const [nome, setNome] = useState('')
@@ -20,7 +20,7 @@ export default function Onboarding() {
     }
     setBusy(true)
     try {
-      await createTenantAsOwner(nome, user.id)
+      await createTenantAsOwner(nome)
       await refreshMembership()
     } catch (err) {
       setError((err && err.message) || String(err))

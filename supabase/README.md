@@ -51,6 +51,20 @@ Login e-mail/senha via Supabase Auth. Papeis `dono` / `operador` vem da tabela
 
 Aplicar a migration do mesmo jeito da #28 (SQL Editor, script idempotente).
 
+## Onboarding — criar barraca (#30)
+
+Criar a barraca gera o **tenant** e o vinculo do **dono** numa unica transacao
+coerente. RPC adicionada em `migrations/20260712140000_onboarding_tenant_rpc.sql`:
+
+- `create_tenant_with_owner(p_nome)` — o usuario logado cria a barraca e ja fica
+  vinculado como `dono`. Roda numa unica funcao (SECURITY DEFINER) => uma unica
+  transacao: se qualquer passo falhar, nada e persistido (sem tenant orfao). O
+  vinculo do dono usa sempre `auth.uid()` no servidor. Guarda contra 2o tenant
+  para o mesmo usuario (Fase 1 assume 1 tenant por usuario).
+
+Substitui os dois inserts client-side (`tenants` + `membros`) que o onboarding
+minimo da #29 usava. Aplicar do mesmo jeito (SQL Editor, script idempotente).
+
 ### O que conferir no painel do Supabase
 - **Authentication > Providers > Email**: habilitado.
 - **Confirm email**: LIGADO (decisao do produto). Consequencia: todo usuario novo
