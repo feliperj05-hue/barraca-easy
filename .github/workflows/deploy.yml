@@ -1,16 +1,29 @@
-name: Deploy to Firebase Hosting
+name: CI + Deploy (Firebase Hosting)
 
-# CI + deploy do Barraca Easy.
-# - Em todo push/PR: instala deps, roda lint e build (validacao continua).
-# - Em push para main: publica no canal "live" do Firebase Hosting,
-#   somente se o secret FIREBASE_SERVICE_ACCOUNT estiver configurado.
-# - Em pull request: publica em um canal de preview temporario (mesma condicao).
+# Pipeline do Barraca Easy — staging x producao (2 projetos Supabase).
+#
+# - Todo push/PR: instala deps, lint e build (validacao continua).
+# - Push na main: build com as chaves de STAGING + publica no canal "staging".
+#   (producao NAO sai no push por seguranca — piloto valida o staging primeiro.)
+# - workflow_dispatch (Run workflow) com environment=production: build com as
+#   chaves de PRODUCAO + publica no canal "live".
+# - Pull request: build com chaves de STAGING + canal de preview temporario.
+#
+# Credenciais publicas do Supabase vem de Repository VARIABLES (a publishable
+# key e publica por design, protegida por RLS). Somente FIREBASE_SERVICE_ACCOUNT
+# e Secret. Os passos de deploy so rodam se esse secret existir.
 
 on:
   push:
     branches: [ main ]
   pull_request:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Ambiente de deploy"
+        type: choice
+        default: staging
+        options: [ staging, production ]
 
 jobs:
   build_and_deploy:
@@ -34,19 +47,50 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Resolver ambiente alvo
+        id: target
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.environment }}" = "production" ]; then
+            echo "env=production" >> "$GITHUB_OUTPUT"
+          else
+            echo "env=staging" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Selecionar chaves Supabase do ambiente
+        id: sb
+        run: |
+          if [ "${{ steps.target.outputs.env }}" = "production" ]; then
+            echo "url=${{ vars.SUPABASE_URL_PRODUCTION }}" >> "$GITHUB_OUTPUT"
+            echo "key=${{ vars.SUPABASE_PUBLISHABLE_KEY_PRODUCTION }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=${{ vars.SUPABASE_URL_STAGING }}" >> "$GITHUB_OUTPUT"
+            echo "key=${{ vars.SUPABASE_PUBLISHABLE_KEY_STAGING }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checar credenciais Supabase do ambiente
+        run: |
+          if [ -z "${{ steps.sb.outputs.url }}" ] || [ -z "${{ steps.sb.outputs.key }}" ]; then
+            echo "::error::Faltam VARIABLES do Supabase para o ambiente '${{ steps.target.outputs.env }}'. Configure SUPABASE_URL_* e SUPABASE_PUBLISHABLE_KEY_* em Settings > Variables."
+            exit 1
+          fi
+
       - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ steps.sb.outputs.url }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ steps.sb.outputs.key }}
         run: npm run build
 
-      - name: Deploy to live channel (push to main)
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && env.FIREBASE_SERVICE_ACCOUNT != '' }}
+      - name: Deploy STAGING (push na main / dispatch staging)
+        if: ${{ steps.target.outputs.env == 'staging' && github.event_name != 'pull_request' && env.FIREBASE_SERVICE_ACCOUNT != '' }}
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: ${{ vars.FIREBASE_PROJECT_ID }}
-          channelId: live
+          channelId: staging
+          expires: 30d
 
-      - name: Deploy to preview channel (pull request)
+      - name: Deploy PREVIEW (pull request)
         if: ${{ github.event_name == 'pull_request' && env.FIREBASE_SERVICE_ACCOUNT != '' }}
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
@@ -54,3 +98,12 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: ${{ vars.FIREBASE_PROJECT_ID }}
           expires: 7d
+
+      - name: Deploy PRODUCAO (dispatch environment=production)
+        if: ${{ steps.target.outputs.env == 'production' && env.FIREBASE_SERVICE_ACCOUNT != '' }}
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
+          channelId: live
