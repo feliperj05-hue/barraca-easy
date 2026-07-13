@@ -133,3 +133,19 @@ node supabase/tests/rls_isolation.mjs
 ```
 
 URL/key sao lidas de `.env.local`. Saida esperada: todos os checks em PASS.
+
+## Fechamentos na nuvem (#33)
+
+Os fechamentos de caixa passaram a ser **online-first**: cada fechamento e uma
+linha em `fechamentos`, isolada por RLS por tenant (`snapshot` jsonb com os
+pedidos do periodo + `summary` jsonb pre-calculado). Sem credenciais Supabase, o
+app continua no modo local (localStorage), sem alteracao.
+
+**Nao ha migration nova nesta issue.** A tabela `fechamentos` e a policy
+`fechamentos_all` ja vieram no schema inicial (#28,
+`20260712120000_init_multitenant.sql`). "Fechar caixa" no modo nuvem e um
+`insert` direto protegido pela RLS; o historico e lido por tenant e o relatorio
+.xlsx e sempre regerado a partir do `snapshot` (zerar a producao nunca perde o
+relatorio). Fechamentos passados nunca sao alterados (append-only).
+
+Pre-requisito: basta que o schema da #28 ja tenha sido aplicado no projeto.
