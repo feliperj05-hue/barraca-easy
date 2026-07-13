@@ -16,6 +16,7 @@ import {
   cancelOrder,
   clearOrders,
 } from './services/orderService.js'
+import { initSync } from './services/syncQueue.js'
 import { getSettings, selectMode, resetSettings } from './services/settingsService.js'
 import {
   fetchMenu,
@@ -108,6 +109,22 @@ export default function App() {
       active = false
     }
   }, [tenantCtx, notify])
+
+  // Sincronizacao offline (issue #34): liga o motor da fila e recarrega
+  // os pedidos quando a outbox sobe ao reconectar.
+  useEffect(() => {
+    initSync()
+  }, [])
+
+  useEffect(() => {
+    const onSynced = () => {
+      fetchOrders(tenantCtx)
+        .then((list) => setOrders(list))
+        .catch(() => {})
+    }
+    window.addEventListener('barraca:synced', onSynced)
+    return () => window.removeEventListener('barraca:synced', onSynced)
+  }, [tenantCtx])
 
   // Carrega o histórico de fechamentos (local ou nuvem) por tenant.
   useEffect(() => {
