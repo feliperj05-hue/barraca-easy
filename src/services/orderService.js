@@ -8,17 +8,30 @@
 // - LOCAL (localStorage): fallback quando nao ha nuvem/tenant. Mantem o modelo
 //   original (append-only + transicoes de status).
 //
+// OFFLINE (issue #34, Fase 1 · best-effort): no caminho NUVEM, quando a conexao
+// cai, a leitura vem do cache em IndexedDB e a escrita entra numa fila (outbox)
+// que sobe ao reconectar (ver offlineDb.js / syncQueue.js). O modo LOCAL ja e
+// sincrono e imune a offline, entao nada muda la.
+//
 // Os helpers de leitura (getOpenOrders, isTicketTaken) sao puros sobre um array
 // de pedidos ja carregado — servem aos dois backends.
 
 import { normalizeTicket } from '../utils/tickets.js'
 import { isSameDay } from '../utils/dates.js'
 import { supabase, isSupabaseConfigured } from './supabaseClient.js'
+import { cacheGet, cacheSet, outboxAdd } from './offlineDb.js'
+import { registerHandler, isOfflineError } from './syncQueue.js'
 
 const STORAGE_KEY = 'barracaEasyManualTicketState'
 
 function isCloud(ctx) {
   return Boolean(isSupabaseConfigured && ctx && ctx.tenantId)
+}
+
+// Cache offline dos pedidos e por tenant (o aparelho pode, no limite, servir a
+// barracas diferentes ao longo do tempo).
+function ordersKey(tenantId) {
+  return 'orders:' + tenantId
 }
 
 // --- Helpers puros (independentes de backend) ---
@@ -118,6 +131,14 @@ const CLOUD_SELECT =
   'id, senha, forma_pagamento, total, status, created_at, paid_at, called_at, ' +
   'delivered_at, cancelled_at, pedido_itens(produto_id, nome, categoria, preco_unit, quantidade)'
 
+// Transicoes de status: mapeia o tipo de operacao (usado na fila offline) para
+// a coluna/valor no Supabase e o campo espelho no objeto local.
+const STATUS_OPS = {
+  call: { status: 'chamado', col: 'called_at', localTs: 'calledAt' },
+  deliver: { status: 'entregue', col: 'delivered_at', localTs: 'deliveredAt' },
+  cancel: { status: 'cancelado', col: 'cancelled_at', localTs: 'cancelledAt' },
+}
+
 function mapOrder(r) {
   return {
     id: r.id,
@@ -141,16 +162,73 @@ function mapOrder(r) {
   }
 }
 
-async function cloudFetch() {
-  const { data, error } = await supabase
-    .from('pedidos')
-    .select(CLOUD_SELECT)
-    .order('created_at', { ascending: true })
-  if (error) throw error
-  return (data || []).map(mapOrder)
+// Erro de senha duplicada vindo do banco (indice unico) — e de negocio, NAO
+// deve virar item de fila offline.
+function isDuplicateTicket(error) {
+  return Boolean(error) && (error.code === '23505' || /usada hoje/i.test(error.message || ''))
 }
 
-async function cloudCreate(ctx, { items, payment, total, ticket }) {
+// ----- Helpers de cache offline -----
+
+async function cacheAppend(tenantId, order) {
+  const cached = (await cacheGet(ordersKey(tenantId))) || []
+  await cacheSet(ordersKey(tenantId), [...cached, order])
+}
+
+async function cacheReplace(tenantId, oldId, newOrder) {
+  const cached = (await cacheGet(ordersKey(tenantId))) || []
+  await cacheSet(
+    ordersKey(tenantId),
+    cached.map((o) => (o.id === oldId ? newOrder : o)),
+  )
+}
+
+async function cachePatchStatus(tenantId, id, status, localTs) {
+  const cached = (await cacheGet(ordersKey(tenantId))) || []
+  await cacheSet(
+    ordersKey(tenantId),
+    cached.map((o) => (o.id === id ? { ...o, status, [localTs]: new Date().toISOString() } : o)),
+  )
+}
+
+function optimisticOrder({ items, payment, total, ticket }) {
+  const now = new Date().toISOString()
+  return {
+    id: 'local-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+    ticket,
+    items,
+    payment,
+    total,
+    status: 'aguardando',
+    createdAt: now,
+    paidAt: now,
+    calledAt: null,
+    deliveredAt: null,
+    cancelledAt: null,
+    pending: true, // ainda nao confirmado no servidor
+  }
+}
+
+// ----- Operacoes cruas contra o Supabase (reusadas pelo replay da fila) -----
+
+async function cloudFetch(ctx) {
+  try {
+    const { data, error } = await supabase
+      .from('pedidos')
+      .select(CLOUD_SELECT)
+      .order('created_at', { ascending: true })
+    if (error) throw error
+    const orders = (data || []).map(mapOrder)
+    await cacheSet(ordersKey(ctx.tenantId), orders) // atualiza o cache offline
+    return orders
+  } catch (err) {
+    if (!isOfflineError(err)) throw err
+    // offline: le do ultimo estado bom conhecido
+    return (await cacheGet(ordersKey(ctx.tenantId))) || []
+  }
+}
+
+async function cloudCreateRaw(tenantId, { items, payment, total, ticket }) {
   const p_itens = items.map((it) => ({
     produto_id: it.id,
     nome: it.name,
@@ -159,31 +237,84 @@ async function cloudCreate(ctx, { items, payment, total, ticket }) {
     quantidade: it.qty,
   }))
   const { data, error } = await supabase.rpc('create_order', {
-    p_tenant_id: ctx.tenantId,
+    p_tenant_id: tenantId,
     p_senha: ticket,
     p_forma_pagamento: payment,
     p_total: total,
     p_itens,
   })
   if (error) {
-    if (error.code === '23505' || /usada hoje/i.test(error.message || '')) {
-      throw new Error(`A senha ${ticket} já foi usada hoje.`)
-    }
+    if (isDuplicateTicket(error)) throw new Error(`A senha ${ticket} já foi usada hoje.`)
     throw error
   }
   const row = Array.isArray(data) ? data[0] : data
-  // A RPC retorna so o pedido; reanexamos os itens que acabamos de enviar
-  // (evita um segundo roundtrip so para a tela de confirmacao).
+  // A RPC retorna so o pedido; reanexamos os itens que acabamos de enviar.
   return mapOrder({ ...row, pedido_itens: p_itens })
 }
 
-async function cloudUpdateStatus(ctx, id, status, tsField) {
-  const patch = { status }
-  patch[tsField] = new Date().toISOString()
+async function cloudCreate(ctx, payload) {
+  try {
+    const order = await cloudCreateRaw(ctx.tenantId, payload)
+    await cacheAppend(ctx.tenantId, order)
+    return order
+  } catch (err) {
+    // Erros de negocio (senha duplicada etc.) sobem para o operador.
+    if (!isOfflineError(err)) throw err
+    // Offline: valida duplicidade contra o cache local e enfileira otimista.
+    const cached = (await cacheGet(ordersKey(ctx.tenantId))) || []
+    if (isTicketTaken(payload.ticket, cached)) {
+      throw new Error(`A senha ${payload.ticket} já foi usada hoje.`)
+    }
+    const optimistic = optimisticOrder(payload)
+    await cacheAppend(ctx.tenantId, optimistic)
+    await outboxAdd({
+      type: 'create',
+      tenantId: ctx.tenantId,
+      orderId: optimistic.id,
+      payload,
+    })
+    return optimistic
+  }
+}
+
+async function cloudStatusRaw(tenantId, id, opType) {
+  const cfg = STATUS_OPS[opType]
+  const patch = { status: cfg.status }
+  patch[cfg.col] = new Date().toISOString()
   const { error } = await supabase.from('pedidos').update(patch).eq('id', id)
   if (error) throw error
-  return cloudFetch()
+  await cachePatchStatus(tenantId, id, cfg.status, cfg.localTs)
 }
+
+async function cloudUpdateStatus(ctx, id, opType) {
+  const cfg = STATUS_OPS[opType]
+  try {
+    await cloudStatusRaw(ctx.tenantId, id, opType)
+    return cloudFetch(ctx)
+  } catch (err) {
+    if (!isOfflineError(err)) throw err
+    // Offline: aplica a mudanca no cache e enfileira para subir depois.
+    await cachePatchStatus(ctx.tenantId, id, cfg.status, cfg.localTs)
+    await outboxAdd({ type: opType, tenantId: ctx.tenantId, orderId: id })
+    return (await cacheGet(ordersKey(ctx.tenantId))) || []
+  }
+}
+
+// =====================================================================
+// Replay da fila offline (registrado no syncQueue)
+// =====================================================================
+
+registerHandler('create', async (op) => {
+  const realOrder = await cloudCreateRaw(op.tenantId, op.payload)
+  // troca o pedido otimista pelo confirmado e devolve o remapeamento de id
+  // para as operacoes seguintes na fila (chamar/entregar/cancelar).
+  await cacheReplace(op.tenantId, op.orderId, realOrder)
+  return { remap: { from: op.orderId, to: realOrder.id } }
+})
+
+registerHandler('call', (op) => cloudStatusRaw(op.tenantId, op.orderId, 'call'))
+registerHandler('deliver', (op) => cloudStatusRaw(op.tenantId, op.orderId, 'deliver'))
+registerHandler('cancel', (op) => cloudStatusRaw(op.tenantId, op.orderId, 'cancel'))
 
 // =====================================================================
 // API UNICA (assincrona) — usada pelo App
@@ -191,7 +322,7 @@ async function cloudUpdateStatus(ctx, id, status, tsField) {
 
 export async function fetchOrders(ctx) {
   if (!isCloud(ctx)) return load().orders
-  return cloudFetch()
+  return cloudFetch(ctx)
 }
 
 // Cria o pedido apos pagamento confirmado e senha fisica informada.
@@ -205,17 +336,17 @@ export async function createOrder(ctx, payload) {
 
 export async function callOrder(ctx, id) {
   if (!isCloud(ctx)) return localUpdateStatus(id, 'chamado', 'calledAt')
-  return cloudUpdateStatus(ctx, id, 'chamado', 'called_at')
+  return cloudUpdateStatus(ctx, id, 'call')
 }
 
 export async function deliverOrder(ctx, id) {
   if (!isCloud(ctx)) return localUpdateStatus(id, 'entregue', 'deliveredAt')
-  return cloudUpdateStatus(ctx, id, 'entregue', 'delivered_at')
+  return cloudUpdateStatus(ctx, id, 'deliver')
 }
 
 export async function cancelOrder(ctx, id) {
   if (!isCloud(ctx)) return localUpdateStatus(id, 'cancelado', 'cancelledAt')
-  return cloudUpdateStatus(ctx, id, 'cancelado', 'cancelled_at')
+  return cloudUpdateStatus(ctx, id, 'cancel')
 }
 
 // Limpa os pedidos (usado no fechamento de caixa e em demonstracao).
@@ -226,5 +357,6 @@ export async function clearOrders(ctx) {
   }
   const { error } = await supabase.from('pedidos').delete().eq('tenant_id', ctx.tenantId)
   if (error) throw error
+  await cacheSet(ordersKey(ctx.tenantId), [])
   return []
 }
