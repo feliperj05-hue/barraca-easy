@@ -27,7 +27,7 @@ import {
   removeItem as svcRemoveItem,
   resetMenu as svcResetMenu,
 } from './services/productService.js'
-import { getClosings, createClosing } from './services/closingsService.js'
+import { getClosings, fetchClosings, createClosing } from './services/closingsService.js'
 import { downloadClosingReport } from './services/reportService.js'
 
 // Telas e quais papeis podem ve-las. Operador opera o caixa; dono gerencia
@@ -55,6 +55,8 @@ export default function App() {
   const [settings, setSettings] = useState(() => getSettings())
   const [menu, setMenu] = useState([])
   const [closings, setClosings] = useState(() => getClosings())
+  // getClosings() acima serve o modo local (síncrono); no modo nuvem o
+  // efeito abaixo recarrega o histórico do tenant.
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
 
@@ -100,6 +102,22 @@ export default function App() {
         if (active) setOrders(list)
       } catch {
         if (active) notify('Falha ao carregar os pedidos.')
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [tenantCtx, notify])
+
+  // Carrega o histórico de fechamentos (local ou nuvem) por tenant.
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      try {
+        const list = await fetchClosings(tenantCtx)
+        if (active) setClosings(list)
+      } catch {
+        if (active) notify('Falha ao carregar o histórico de fechamentos.')
       }
     })()
     return () => {
@@ -250,12 +268,12 @@ export default function App() {
     }
     if (!window.confirm('Tem certeza? Isso vai fechar o caixa e zerar a produção.')) return
     try {
-      // Fechamentos ainda sao locais (migram na #33); o snapshot vem do estado
-      // atual (ja carregado da nuvem). Depois limpamos os pedidos do tenant.
-      createClosing(orders)
+      // Cria o fechamento (nuvem ou local; o snapshot vem do estado atual já
+      // carregado do backend) e só então limpa os pedidos do tenant.
+      await createClosing(tenantCtx, orders)
       await clearOrders(tenantCtx)
       setOrders([])
-      setClosings(getClosings())
+      setClosings(await fetchClosings(tenantCtx))
       notify('Caixa fechado. Relatório disponível no histórico.')
     } catch {
       notify('Falha ao fechar o caixa.')
