@@ -3,6 +3,12 @@ import ProductGrid from '../components/ProductGrid.jsx'
 import CartPanel from '../components/CartPanel.jsx'
 import PaymentModal from '../components/PaymentModal.jsx'
 import { formatBRL } from '../utils/money.js'
+import {
+  playAddToCart,
+  playPaymentDone,
+  isSoundEnabled,
+  setSoundEnabled,
+} from '../services/soundService.js'
 
 const HERO_BY_MODE = {
   cashier_production_sync: {
@@ -37,6 +43,7 @@ export default function Cashier({ settings, menu, onCreateOrder, notify }) {
   const [payment, setPayment] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [confirmed, setConfirmed] = useState(null)
+  const [soundOn, setSoundOn] = useState(() => isSoundEnabled())
 
   const visibleProducts =
     selectedCategory === 'Todos'
@@ -69,6 +76,11 @@ export default function Cashier({ settings, menu, onCreateOrder, notify }) {
   function addToCart(id) {
     setCart((c) => ({ ...c, [id]: (c[id] || 0) + 1 }))
     notify('Item adicionado')
+    playAddToCart()
+  }
+
+  function toggleSound() {
+    setSoundOn(setSoundEnabled(!soundOn))
   }
 
   function changeQty(id, delta) {
@@ -91,6 +103,7 @@ export default function Cashier({ settings, menu, onCreateOrder, notify }) {
   async function confirmPaid(ticketValue) {
     const order = await onCreateOrder({ items, payment, total, ticket: ticketValue })
     if (!order) return // erro (ex: senha duplicada) já foi avisado via toast
+    playPaymentDone()
     setModalOpen(false)
     setConfirmed(order)
     setCart({})
@@ -136,7 +149,15 @@ export default function Cashier({ settings, menu, onCreateOrder, notify }) {
         <div className="panel">
           <div className="panel-title">
             <h2>Lançar pedido</h2>
-            <span className="muted">Operação do caixa</span>
+            <button
+              type="button"
+              className="btn-secondary small"
+              onClick={toggleSound}
+              aria-pressed={soundOn}
+              title={soundOn ? 'Sons ligados — tocar para silenciar' : 'Sons desligados — tocar para ativar'}
+            >
+              {soundOn ? '🔊 Som' : '🔇 Mudo'}
+            </button>
           </div>
           <ProductGrid
             categories={categories}
