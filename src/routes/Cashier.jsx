@@ -88,8 +88,8 @@ export default function Cashier({ settings, menu, onCreateOrder, notify }) {
     setModalOpen(true)
   }
 
-  function confirmPaid(ticketValue) {
-    const order = onCreateOrder({ items, payment, total, ticket: ticketValue })
+  async function confirmPaid(ticketValue) {
+    const order = await onCreateOrder({ items, payment, total, ticket: ticketValue })
     if (!order) return // erro (ex: senha duplicada) já foi avisado via toast
     setModalOpen(false)
     setConfirmed(order)

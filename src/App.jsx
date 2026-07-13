@@ -9,7 +9,7 @@ import Settings from './routes/Settings.jsx'
 import Members from './routes/Members.jsx'
 import { useAuth } from './auth/AuthContext.jsx'
 import {
-  getOrders,
+  fetchOrders,
   createOrder,
   callOrder,
   deliverOrder,
@@ -51,7 +51,7 @@ export default function App() {
   )
 
   const [screen, setScreen] = useState('cashier')
-  const [orders, setOrders] = useState(() => getOrders())
+  const [orders, setOrders] = useState([])
   const [settings, setSettings] = useState(() => getSettings())
   const [menu, setMenu] = useState([])
   const [closings, setClosings] = useState(() => getClosings())
@@ -67,9 +67,9 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(null), 2600)
   }, [])
 
-  // Contexto do cardapio: com tenant os dados vao para a nuvem (Supabase);
-  // sem tenant (modo local) caem no localStorage.
-  const menuCtx = useMemo(
+  // Contexto de dados: com tenant os dados vao para a nuvem (Supabase);
+  // sem tenant (modo local) caem no localStorage. Vale para cardapio e pedidos.
+  const tenantCtx = useMemo(
     () => (membership && membership.tenantId ? { tenantId: membership.tenantId } : null),
     [membership],
   )
@@ -79,8 +79,8 @@ export default function App() {
     let active = true
     ;(async () => {
       try {
-        await ensureSeeded(menuCtx)
-        const list = await fetchMenu(menuCtx)
+        await ensureSeeded(tenantCtx)
+        const list = await fetchMenu(tenantCtx)
         if (active) setMenu(list)
       } catch {
         if (active) notify('Falha ao carregar o cardápio.')
@@ -89,37 +89,71 @@ export default function App() {
     return () => {
       active = false
     }
-  }, [menuCtx, notify])
+  }, [tenantCtx, notify])
+
+  // Carrega os pedidos (local ou nuvem) por tenant.
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      try {
+        const list = await fetchOrders(tenantCtx)
+        if (active) setOrders(list)
+      } catch {
+        if (active) notify('Falha ao carregar os pedidos.')
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [tenantCtx, notify])
 
   const handleCreateOrder = useCallback(
-    (payload) => {
+    async (payload) => {
       try {
-        const order = createOrder(payload)
-        setOrders(getOrders())
+        const order = await createOrder(tenantCtx, payload)
+        setOrders(await fetchOrders(tenantCtx))
         return order
       } catch (e) {
         notify(e.message)
         return null
       }
     },
-    [notify],
+    [tenantCtx, notify],
   )
 
-  const handleCall = useCallback((id) => {
-    setOrders([...callOrder(id)])
-  }, [])
+  const handleCall = useCallback(
+    async (id) => {
+      try {
+        setOrders(await callOrder(tenantCtx, id))
+      } catch {
+        notify('Falha ao chamar a senha.')
+      }
+    },
+    [tenantCtx, notify],
+  )
 
-  const handleDeliver = useCallback((id) => {
-    setOrders([...deliverOrder(id)])
-  }, [])
+  const handleDeliver = useCallback(
+    async (id) => {
+      try {
+        setOrders(await deliverOrder(tenantCtx, id))
+      } catch {
+        notify('Falha ao marcar como entregue.')
+      }
+    },
+    [tenantCtx, notify],
+  )
 
   const handleCancel = useCallback(
-    (id) => {
+    async (id) => {
       if (!window.confirm('Cancelar este pedido? Ele sairá da fila e do fechamento.')) return
-      setOrders([...cancelOrder(id)])
-      notify('Pedido cancelado.')
+      try {
+        setOrders(await cancelOrder(tenantCtx, id))
+        notify('Pedido cancelado.')
+      } catch {
+        notify('Falha ao cancelar o pedido.')
+      }
     },
-    [notify],
+    [tenantCtx, notify],
   )
 
   const handleSelectMode = useCallback(
@@ -135,92 +169,98 @@ export default function App() {
     notify('Configuração padrão restaurada.')
   }, [notify])
 
-  // --- Cardápio (async: local ou nuvem, conforme o menuCtx) ---
+  // --- Cardápio (async: local ou nuvem, conforme o tenantCtx) ---
   const handleSetPrice = useCallback(
     async (id, price) => {
       try {
-        setMenu(await svcSetPrice(menuCtx, id, price))
+        setMenu(await svcSetPrice(tenantCtx, id, price))
         notify('Preço atualizado.')
       } catch {
         notify('Falha ao atualizar o preço.')
       }
     },
-    [menuCtx, notify],
+    [tenantCtx, notify],
   )
 
   const handleToggleHidden = useCallback(
     async (id, hidden) => {
       try {
-        setMenu(await svcToggleHidden(menuCtx, id, hidden))
+        setMenu(await svcToggleHidden(tenantCtx, id, hidden))
         notify(hidden ? 'Item ocultado.' : 'Item visível.')
       } catch {
         notify('Falha ao atualizar a visibilidade.')
       }
     },
-    [menuCtx, notify],
+    [tenantCtx, notify],
   )
 
   const handleAddItem = useCallback(
     async (payload) => {
       try {
-        setMenu(await svcAddItem(menuCtx, payload))
+        setMenu(await svcAddItem(tenantCtx, payload))
         notify('Item adicionado ao cardápio.')
       } catch {
         notify('Falha ao adicionar o item.')
       }
     },
-    [menuCtx, notify],
+    [tenantCtx, notify],
   )
 
   const handleUpdateItem = useCallback(
     async (id, patch) => {
       try {
-        setMenu(await svcUpdateItem(menuCtx, id, patch))
+        setMenu(await svcUpdateItem(tenantCtx, id, patch))
         notify('Item atualizado.')
       } catch {
         notify('Falha ao atualizar o item.')
       }
     },
-    [menuCtx, notify],
+    [tenantCtx, notify],
   )
 
   const handleRemoveItem = useCallback(
     async (item) => {
       if (!window.confirm(`Remover "${item.name}" do cardápio?`)) return
       try {
-        setMenu(await svcRemoveItem(menuCtx, item.id))
+        setMenu(await svcRemoveItem(tenantCtx, item.id))
         notify('Item removido.')
       } catch {
         notify('Falha ao remover o item.')
       }
     },
-    [menuCtx, notify],
+    [tenantCtx, notify],
   )
 
   const handleResetMenu = useCallback(async () => {
     if (!window.confirm('Restaurar o cardápio padrão? As customizações serão perdidas.')) return
     try {
-      setMenu(await svcResetMenu(menuCtx))
+      setMenu(await svcResetMenu(tenantCtx))
       notify('Cardápio padrão restaurado.')
     } catch {
       notify('Falha ao restaurar o cardápio.')
     }
-  }, [menuCtx, notify])
+  }, [tenantCtx, notify])
 
   // --- Fechamento de caixa ---
-  const handleCloseRegister = useCallback(() => {
+  const handleCloseRegister = useCallback(async () => {
     const hasValidSales = orders.some((o) => o.status !== 'cancelado')
     if (!hasValidSales) {
       notify('Nenhuma venda confirmada para fechar.')
       return
     }
     if (!window.confirm('Tem certeza? Isso vai fechar o caixa e zerar a produção.')) return
-    createClosing(orders)
-    clearOrders()
-    setOrders([])
-    setClosings(getClosings())
-    notify('Caixa fechado. Relatório disponível no histórico.')
-  }, [orders, notify])
+    try {
+      // Fechamentos ainda sao locais (migram na #33); o snapshot vem do estado
+      // atual (ja carregado da nuvem). Depois limpamos os pedidos do tenant.
+      createClosing(orders)
+      await clearOrders(tenantCtx)
+      setOrders([])
+      setClosings(getClosings())
+      notify('Caixa fechado. Relatório disponível no histórico.')
+    } catch {
+      notify('Falha ao fechar o caixa.')
+    }
+  }, [orders, tenantCtx, notify])
 
   const handleDownloadReport = useCallback(
     async (closing) => {
