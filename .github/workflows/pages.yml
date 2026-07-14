@@ -1,13 +1,20 @@
-name: Deploy to GitHub Pages
+name: (fallback manual) Deploy to GitHub Pages
 
-# Publica o build de producao (Vite) no GitHub Pages.
-# Hosting estatico: o app roda no cliente; credenciais Supabase (publishable,
-# publicas por design) sao injetadas no build via Repository Variables.
-# URL final: https://feliperj05-hue.github.io/barraca-easy/
+# Fallback OPCIONAL e MANUAL de hosting.
+#
+# O host de producao APROVADO e o Firebase Hosting (.github/workflows/deploy.yml,
+# staging + producao). Este workflow existe so como plano B "sem Firebase":
+# publica o mesmo build estatico no GitHub Pages, num subpath
+# (https://feliperj05-hue.github.io/barraca-easy/).
+#
+# Por isso NAO dispara no push da main (senao publicaria em duas URLs ao mesmo
+# tempo, brigando com o Firebase). Rode a mao em Actions > Run workflow quando
+# quiser um deploy sem depender do Firebase.
+#
+# Backend Supabase: as credenciais publicas (publishable, protegidas por RLS)
+# entram no bundle via Repository Variables (VITE_SUPABASE_URL / _PUBLISHABLE_KEY).
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 # Permissoes necessarias para o deploy-pages via OIDC.
@@ -60,8 +67,10 @@ jobs:
           fi
           exit $missing
 
+      # GitHub Pages serve num subpath, entao sobrescreve a base "/" do
+      # vite.config (que e a base do Firebase, host de producao).
       - name: Build
-        run: npm run build
+        run: npm run build -- --base=/barraca-easy/
 
       - name: SPA fallback (404.html)
         run: cp dist/index.html dist/404.html
