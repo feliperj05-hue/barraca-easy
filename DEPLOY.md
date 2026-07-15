@@ -6,10 +6,9 @@ producao — Postgres + Auth, multi-tenant com RLS). O front e um PWA React + Vi
 sem credenciais Supabase no build, o app cai no modo local (`localStorage`) sem
 quebrar.
 
-> GitHub Pages nao e mais o host ativo. Ele fica so como **fallback manual**
-> "sem Firebase" (`.github/workflows/pages.yml`, roda a mao em Actions > Run
-> workflow). Nao dispara no push da main pra nao publicar em duas URLs ao mesmo
-> tempo. O host oficial e o Firebase.
+> GitHub Pages foi **aposentado** (decisao do Felipe, 15/07/2026). O host
+> oficial e unico e o Firebase Hosting; o antigo workflow de fallback
+> (`.github/workflows/pages.yml`) foi removido do repo.
 
 ## Visao geral
 

@@ -114,8 +114,9 @@ Aplicar do mesmo jeito das anteriores (SQL Editor, script idempotente).
 - **Confirm email**: LIGADO (decisao do produto). Consequencia: todo usuario novo
   precisa confirmar o e-mail antes do primeiro login. O operador se cadastra,
   confirma o e-mail, e so entao o dono consegue vincula-lo por `add_member`.
-- **Authentication > URL Configuration**: Site URL =
-  `https://feliperj05-hue.github.io/barraca-easy/` e a mesma URL em Redirect URLs.
+- **Authentication > URL Configuration**: Site URL = a URL do Firebase Hosting
+  daquele ambiente (canal `staging` no projeto de teste; URL `live` na producao),
+  e a mesma URL em Redirect URLs.
 - **Signups**: habilitados (para auto-cadastro do operador).
 
 ### Teste de isolamento de RLS
