@@ -6,7 +6,25 @@
 // por design e protegida por Row-Level Security no Supabase.
 import { createClient } from "@supabase/supabase-js"
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+// O supabase-js espera a URL BASE do projeto (https://<ref>.supabase.co) e
+// monta os caminhos /rest/v1, /auth/v1 etc. por conta propria. Se a variavel
+// chegar com "/rest/v1" ou barra(s) no fim (engano comum ao copiar da tela
+// "API" do Supabase), aparamos aqui pra nao gerar URL duplicada (.../rest/v1//rest/v1).
+function normalizeSupabaseUrl(url) {
+  if (!url) return url
+  let u = url.trim().replace(/\/+$/, "")
+  const stripped = u.replace(/\/rest\/v1$/i, "")
+  if (stripped !== u) {
+    console.warn(
+      "[supabase] VITE_SUPABASE_URL veio com \"/rest/v1\" no fim; usando a URL " +
+        "base. Ajuste a variavel para so \"https://<ref>.supabase.co\".",
+    )
+    u = stripped
+  }
+  return u
+}
+
+const supabaseUrl = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL)
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
 // Sem credenciais o app continua funcionando 100% offline (localStorage);

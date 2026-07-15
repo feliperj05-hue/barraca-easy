@@ -40,6 +40,10 @@ credencial vazia.
 
 **Variables** (aba Variables — publicas por design, protegidas por RLS):
 
+> As URLs do Supabase sao a **URL base** do projeto (`https://<ref>.supabase.co`),
+> sem `/rest/v1` nem barra no fim — o supabase-js monta esses caminhos sozinho.
+> (O cliente ainda apara o sufixo por seguranca, mas mantenha a variavel limpa.)
+
 | Nome | Valor |
 |---|---|
 | `FIREBASE_PROJECT_ID` | Project ID do Firebase (ex.: `barraca-easy-1a2b3`) |
