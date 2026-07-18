@@ -24,8 +24,13 @@ function normalizeSupabaseUrl(url) {
   return u
 }
 
-const supabaseUrl = normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL)
-const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+// O Vite substitui `import.meta.env` no build; fora dele (node puro, como nos
+// scripts de teste em scripts/) a propriedade nao existe. O `|| {}` mantem o
+// modulo importavel nos dois mundos sem mudar o comportamento no app.
+const env = import.meta.env || {}
+
+const supabaseUrl = normalizeSupabaseUrl(env.VITE_SUPABASE_URL)
+const supabaseKey = env.VITE_SUPABASE_PUBLISHABLE_KEY
 
 // Sem credenciais o app continua funcionando 100% offline (localStorage);
 // apenas os recursos de nuvem ficam indisponiveis. Avisamos de forma clara.

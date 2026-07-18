@@ -28,6 +28,9 @@ export async function signUp(email, password) {
 }
 
 export async function signOut() {
+  // Limpa o vinculo em cache antes de sair: o proximo usuario deste aparelho
+  // nao pode herdar o tenant do anterior (#73).
+  clearMembershipCache()
   const { error } = await requireClient().auth.signOut()
   if (error) throw error
 }
@@ -39,6 +42,50 @@ export async function resendConfirmation(email) {
     email: email.trim(),
   })
   if (error) throw error
+}
+
+// --- Cache local do vinculo (#73) ---
+//
+// Por que existe: o vinculo (tenant + papel) so vinha da rede e vivia no state
+// do React. Abrir o app sem sinal fazia o `select` estourar, o vinculo virava
+// `null` e o portao de auth confundia isso com "esse usuario nao tem barraca",
+// jogando o operador na tela de Onboarding com a barraca funcionando e as
+// vendas do dia no cache. Erro de transporte nao pode virar resposta de
+// negocio. Guardamos por usuario porque um tablet pode trocar de dono.
+
+const MEMBERSHIP_KEY = 'barracaEasyMembership'
+
+function membershipStore() {
+  try {
+    return JSON.parse(localStorage.getItem(MEMBERSHIP_KEY) || '{}')
+  } catch {
+    return {}
+  }
+}
+
+export function cacheMembership(userId, membership) {
+  if (!userId) return
+  try {
+    const all = membershipStore()
+    if (membership) all[userId] = membership
+    else delete all[userId]
+    localStorage.setItem(MEMBERSHIP_KEY, JSON.stringify(all))
+  } catch {
+    // best-effort: sem cache o app so perde a resiliencia offline
+  }
+}
+
+export function readCachedMembership(userId) {
+  if (!userId) return null
+  return membershipStore()[userId] || null
+}
+
+export function clearMembershipCache() {
+  try {
+    localStorage.removeItem(MEMBERSHIP_KEY)
+  } catch {
+    // ignore
+  }
 }
 
 // --- Membros / tenant ---
