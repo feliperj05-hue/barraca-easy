@@ -18,7 +18,9 @@ Nesta primeira fase:
 - não implementar login;
 - não implementar Pix integrado;
 - não implementar cartão integrado;
-- não implementar impressora;
+- ~~não implementar impressora~~ — **liberado em 18/07/2026**: a impressora
+  térmica ESC/POS via WebUSB está implementada (issue #63). Ver a seção
+  "Impressora térmica" abaixo;
 - manter persistência com `localStorage`.
 
 ## Referência visual e funcional
@@ -146,3 +148,38 @@ Status: preparado para próxima fase.
 - Configurações mostram os 3 modos.
 - Modo padrão salvo em `localStorage`.
 - Dados persistem após recarregar a página.
+
+
+## Impressora térmica (liberado em 18/07/2026 — issue #63)
+
+A restrição antiga de "não implementar impressora" **não vale mais**. Felipe
+decidiu em 18/07/2026 adiar o TWA/Play Store e priorizar a impressão do cupom.
+
+Arquitetura implementada:
+
+- `src/services/escpos.js` — camada pura: documento de blocos → bytes ESC/POS
+  ou texto de pré-visualização. Sem navegador, sem React.
+- `src/services/receiptLayout.js` — monta o cupom a partir do pedido real do
+  app, com a senha em corpo ampliado.
+- `src/services/printerService.js` — WebUSB (detecção de suporte, pareamento,
+  envio) + configuração da impressora em `localStorage`.
+- `src/components/PrinterSettingsCard.jsx` — tela de configuração com prévia do
+  cupom e dump dos bytes.
+
+Decisões técnicas que NÃO devem ser revertidas sem conversa:
+
+- **Não usar `window.print()`**: sempre abre diálogo do sistema, inviável com
+  fila no balcão.
+- **Não usar Web Bluetooth**: o Chrome só fala BLE e as térmicas baratas usam
+  Bluetooth Classic/SPP. WebUSB por cabo OTG é o caminho.
+- **iPhone/Safari não tem WebUSB**: o app detecta e explica; a impressão
+  automática é recurso do tablet Android com Chrome.
+- **Falha de impressão nunca derruba a venda**: `printOrder` devolve
+  `{ printed, reason }` em vez de estourar exceção.
+
+Perfil de hardware assumido: térmica genérica compatível com ESC/POS (padrão
+Epson TM-T20 e clones), classe USB 7, papel 58mm (32 colunas) por padrão,
+80mm (48 colunas) configurável. Codepage CP850 com fallback ASCII.
+
+Ainda **não validado com hardware físico** (impressora não comprada até
+18/07/2026): corte de papel, codepage real do modelo e endpoint USB específico.

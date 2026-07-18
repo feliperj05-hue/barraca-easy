@@ -9,6 +9,7 @@ import {
   isSoundEnabled,
   setSoundEnabled,
 } from '../services/soundService.js'
+import { getPrinterSettings, printOrder, isWebUsbSupported } from '../services/printerService.js'
 
 const HERO_BY_MODE = {
   cashier_production_sync: {
@@ -17,7 +18,7 @@ const HERO_BY_MODE = {
   },
   cashier_printer: {
     title: 'Modo Caixa + Impressora',
-    text: 'Protótipo preparado para caixa com senha impressa ou física. Nesta fase, o fluxo ainda usa confirmação manual.',
+    text: 'A impressão do cupom térmico já está pronta (configure em Configurações → Impressora). A geração automática de senha pelo sistema ainda usa confirmação manual.',
   },
   self_service_kiosk: {
     title: 'Modo 100% Autônomo',
@@ -150,6 +151,21 @@ export default function Cashier({ settings, menu, onCreateOrder, notify }) {
     setConfirmed(order)
     setCart({})
     setPayment(null)
+    // Cupom sai depois da venda ja registrada e SEM travar a tela (#63).
+    // Impressora sem papel, cabo solto ou desligada viram aviso — jamais
+    // podem desfazer ou segurar uma venda que o cliente ja pagou.
+    const printerCfg = getPrinterSettings()
+    if (printerCfg.enabled) {
+      printOrder(order, printerCfg).then((result) => {
+        if (!result.printed) notify('Cupom não impresso: ' + result.reason)
+      })
+    }
+  }
+
+  async function reprint() {
+    if (!confirmed) return
+    const result = await printOrder(confirmed)
+    notify(result.printed ? 'Cupom enviado à impressora.' : result.reason)
   }
 
   function newSale() {
@@ -166,6 +182,11 @@ export default function Cashier({ settings, menu, onCreateOrder, notify }) {
           <p className="muted">
             {formatBRL(confirmed.total)} • {confirmed.payment} confirmado
           </p>
+          {isWebUsbSupported() && (
+            <button type="button" className="btn-secondary big-action" onClick={reprint}>
+              Imprimir cupom
+            </button>
+          )}
           <button type="button" className="btn-primary big-action" onClick={newSale}>
             Próximo cliente
           </button>

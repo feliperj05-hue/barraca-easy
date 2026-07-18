@@ -1,8 +1,9 @@
 import OperationModeCard from '../components/OperationModeCard.jsx'
 import CloudStatus from '../components/CloudStatus.jsx'
+import PrinterSettingsCard from '../components/PrinterSettingsCard.jsx'
 import { getModeList, getCurrentMode } from '../services/settingsService.js'
 
-export default function Settings({ settings, onSelectMode, onResetSettings }) {
+export default function Settings({ settings, onSelectMode, onResetSettings, notify }) {
   const modes = getModeList()
   const current = getCurrentMode(settings)
 
@@ -44,6 +45,8 @@ export default function Settings({ settings, onSelectMode, onResetSettings }) {
           />
         ))}
       </div>
+
+      <PrinterSettingsCard notify={notify} />
     </section>
   )
 }

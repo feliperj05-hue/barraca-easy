@@ -13,10 +13,13 @@ export const MODES = {
     description:
       'O caixa registra o pedido, recebe o pagamento e entrega ou imprime a senha para o cliente.',
     ideal: ['Caixa tradicional', 'Senha impressa ou física', 'Operação com uma tela principal'],
+    // A impressao ESC/POS ja esta implementada (#63) e vale em qualquer modo;
+    // o que falta para este modo ficar completo e a geracao de senha pelo
+    // sistema sem tela de producao.
     preview: [
       'Senha: sistema gera ou caixa informa',
       'Produção: opcional',
-      'Impressora: preparada para fase futura',
+      'Impressora: cupom ESC/POS por USB (WebUSB)',
     ],
     status: 'future',
     statusLabel: 'Preparado para próxima fase',
