@@ -30,7 +30,7 @@ export default function OrderCard({ order, onCall, onDeliver, onCancel }) {
             Chamar senha
           </button>
         )}
-        <button type="button" className="btn-secondary" onClick={() => onDeliver(order.id)}>
+        <button type="button" className="btn-ok" onClick={() => onDeliver(order.id)}>
           Entregue / OK
         </button>
         <button type="button" className="btn-danger" onClick={() => onCancel(order.id)}>

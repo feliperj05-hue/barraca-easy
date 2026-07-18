@@ -28,7 +28,7 @@ export default function OperationModeCard({ mode, selected, onSelect }) {
         <span className={'mode-status' + (isMvp ? ' ready' : '')}>{mode.statusLabel}</span>
         <button
           type="button"
-          className={isMvp ? 'btn-secondary' : 'btn-primary'}
+          className="btn-secondary"
           onClick={() => onSelect(mode.key)}
         >
           {selected ? 'Modo selecionado' : 'Selecionar modo'}

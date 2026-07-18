@@ -49,7 +49,7 @@ export default function PaymentModal({ open, total, onClose, onConfirm }) {
           <button type="button" className="btn-ghost" onClick={onClose}>
             Voltar ao pedido
           </button>
-          <button type="button" className="btn-secondary" onClick={() => onConfirm(ticket)}>
+          <button type="button" className="btn-ok" onClick={() => onConfirm(ticket)}>
             Pagamento confirmado
           </button>
         </div>

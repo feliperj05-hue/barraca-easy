@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "lint": "oxlint",
     "build:staging": "vite build --mode staging",
-    "build:production": "vite build --mode production"
+    "build:production": "vite build --mode production",
+    "contraste": "node scripts/contraste.mjs",
+    "previa": "node scripts/gerar-previa.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",
