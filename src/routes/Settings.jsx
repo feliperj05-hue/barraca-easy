@@ -18,7 +18,8 @@ import { SETTINGS_SECTIONS, visibleFor } from '../services/permissions.js'
 // Producao e Fechamento, e todo o resto mora atras da engrenagem.
 //
 // A navegacao das secoes e uma coluna de botoes grandes (alvo de dedo em
-// tablet), que vira uma fileira rolavel no retrato.
+// tablet), que vira uma fileira rolavel no retrato. So texto: rotulo e dica
+// (#83).
 export default function Settings({
   settings,
   onSelectMode,
@@ -62,9 +63,6 @@ export default function Settings({
               aria-current={s.id === current ? 'page' : undefined}
               onClick={() => setActive(s.id)}
             >
-              <span className="settings-nav-icon" aria-hidden="true">
-                {s.icon}
-              </span>
               <span className="settings-nav-text">
                 <strong>{s.label}</strong>
                 <span className="muted small">{s.hint}</span>

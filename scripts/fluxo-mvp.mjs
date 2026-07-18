@@ -20,6 +20,10 @@
 import { chromium } from 'playwright-core'
 
 const URL = process.env.ALVO || 'http://127.0.0.1:4178/'
+
+// Viewport configuravel (#82): o mesmo fluxo tem que passar no PC, no tablet e
+// no celular. Uso: VIEWPORT=360x640 node scripts/fluxo-mvp.mjs
+const [LARG, ALT] = (process.env.VIEWPORT || '1280x900').split('x').map(Number)
 const EXEC =
   process.env.HOME + '/.cache/ms-playwright/chromium-1228/chrome-linux64/chrome'
 
@@ -33,7 +37,34 @@ const navegador = await chromium.launch({
   executablePath: EXEC,
   args: ['--no-sandbox', '--disable-gpu'],
 })
-const pagina = await navegador.newPage({ viewport: { width: 1280, height: 900 } })
+const pagina = await navegador.newPage({ viewport: { width: LARG, height: ALT } })
+console.log('viewport ' + LARG + 'x' + ALT)
+
+// A senha nao tem mais campo de texto: desde o #81 quem digita e o teclado do
+// proprio app. Teclar de verdade (clicando nas teclas) e o unico jeito de o
+// teste andar pelo caminho que o operador anda.
+async function digitarSenha(numero) {
+  for (const d of String(numero)) {
+    await pagina.locator('.keypad-key', { hasText: new RegExp('^' + d + '$') }).click()
+  }
+}
+
+// O botao de prosseguir precisa estar DENTRO da tela, nao so existir no DOM.
+// Era exatamente essa a falha do #82: o botao existia, respondia a clique
+// programatico, e mesmo assim ninguem conseguia tocar nele no celular.
+async function botaoNaTela(nome) {
+  const caixa = await pagina.getByRole('button', { name: nome }).boundingBox()
+  if (!caixa) return { ok: false, detalhe: 'sem boundingBox' }
+  const vp = pagina.viewportSize()
+  const dentro =
+    caixa.y >= 0 &&
+    caixa.y + caixa.height <= vp.height &&
+    caixa.x >= 0 &&
+    caixa.x + caixa.width <= vp.width
+  const detalhe =
+    'y=' + Math.round(caixa.y) + '..' + Math.round(caixa.y + caixa.height) + ' de ' + vp.height
+  return { ok: dentro, detalhe }
+}
 pagina.on('pageerror', (e) => console.log('ERRO DE PAGINA:', e.message))
 await pagina.goto(URL, { waitUntil: 'networkidle' })
 
@@ -63,8 +94,11 @@ const tituloModal = await pagina.locator('.modal h2').innerText()
 ok('Abre popup de pagamento', /pagamento/i.test(tituloModal), tituloModal)
 await pagina.screenshot({ path: '/tmp/fluxo_modal.png' })
 
+const visivel = await botaoNaTela('Pagamento confirmado')
+ok('Botao verde de confirmar visivel na tela (#82)', visivel.ok, visivel.detalhe)
+
 // --- 3. Informa a senha fisica --------------------------------------
-await pagina.locator('.modal input').fill('50')
+await digitarSenha('50')
 await pagina.getByRole('button', { name: 'Pagamento confirmado' }).click()
 await pagina.waitForSelector('.ticket-number')
 const senha = await pagina.locator('.ticket-number').innerText()
@@ -78,7 +112,7 @@ await pagina.locator('.product').first().getByText('Adicionar').click()
 await pagina.locator('.payment-grid button', { hasText: 'Dinheiro' }).click()
 await pagina.getByRole('button', { name: 'Confirmar pedido' }).click()
 await pagina.waitForSelector('.modal')
-await pagina.locator('.modal input').fill('50')
+await digitarSenha('50')
 await pagina.getByRole('button', { name: 'Pagamento confirmado' }).click()
 await pagina.waitForTimeout(600)
 const aindaNoModal = await pagina.locator('.modal').count()
@@ -89,7 +123,9 @@ ok(
   'modal aberto=' + aindaNoModal + ' toast=' + aviso,
 )
 
-await pagina.locator('.modal input').fill('51')
+await pagina.locator('.keypad-erase').click()
+await pagina.locator('.keypad-erase').click()
+await digitarSenha('51')
 await pagina.getByRole('button', { name: 'Pagamento confirmado' }).click()
 await pagina.waitForSelector('.ticket-number')
 ok('Aceita senha nova', (await pagina.locator('.ticket-number').innerText()).trim() === '051')
@@ -138,6 +174,12 @@ const modos = await pagina.locator('.mode-card').count()
 ok('Configuracoes mostram os 3 modos', modos === 3, modos + ' modos')
 const selecionado = await pagina.locator('.mode-card.selected h3').innerText()
 ok('Modo padrao e o sincronizado', /Sincronizado/i.test(selecionado), selecionado)
+// Menu de Configuracoes so com texto (#83).
+const menuTexto = await pagina.locator('.settings-nav').innerText()
+const temEmoji = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(menuTexto)
+ok('Menu de Configuracoes sem emoji (#83)', !temEmoji, temEmoji ? 'achou emoji' : 'so texto')
+const icones = await pagina.locator('.settings-nav-icon').count()
+ok('Nenhum span de icone sobrando', icones === 0, icones + ' encontrados')
 await pagina.screenshot({ path: '/tmp/fluxo_config.png' })
 
 // --- 9. Persistencia ------------------------------------------------
