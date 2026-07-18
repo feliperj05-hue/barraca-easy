@@ -30,7 +30,7 @@ export default function ProductGrid({
               <h3>{p.name}</h3>
               <div className="price">{formatBRL(p.price)}</div>
             </div>
-            <button type="button" className="btn-primary" onClick={() => onAdd(p.id)}>
+            <button type="button" className="btn-add" onClick={() => onAdd(p.id)}>
               Adicionar
             </button>
           </div>

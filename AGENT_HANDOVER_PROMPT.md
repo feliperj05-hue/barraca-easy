@@ -183,3 +183,76 @@ Epson TM-T20 e clones), classe USB 7, papel 58mm (32 colunas) por padrão,
 
 Ainda **não validado com hardware físico** (impressora não comprada até
 18/07/2026): corte de papel, codepage real do modelo e endpoint USB específico.
+
+## Identidade visual (issue #71 — 18/07/2026)
+
+A UI foi repaginada para um visual maduro, quente e artesanal. As regras
+abaixo nao sao gosto pessoal: sao o que impede a tela de virar arco-iris
+de novo.
+
+### Tokens por funcao, nao por cor
+
+Toda cor vive em `src/styles/app.css`, no bloco `:root`, com nome de
+**funcao** (`--cor-acao`, `--cor-status-ok`, `--cor-nav`). Nao existe
+`--laranja` nem `--verde`. Quem quiser "um botao verde" nao acha token
+para isso, e e essa a intencao.
+
+### As tres regras que nao se quebram
+
+1. **Laranja forte (`--cor-acao`) so em acao primaria.** Confirmar pedido,
+   Chamar senha, Proximo cliente, Fechar caixa. Se tudo for laranja, nada
+   e laranja e o operador perde a referencia de onde tocar.
+2. **Verde so em status positivo.** Online, sincronizado, entregue,
+   sucesso. Botao de confirmacao positiva usa `.btn-ok`. Verde nunca e
+   decoracao, nunca e cor de preco, nunca e "botao secundario".
+3. **Carvao (`--cor-nav`) para navegacao, texto forte e a senha.** A senha
+   aparece em carvao no Caixa e na Producao — mesmo dado, mesma cor.
+
+### Contraste e requisito, nao enfeite
+
+O tablet fica no balcao pegando sol. `npm run contraste` valida todo par
+cor/fundo contra WCAG AA (4.5:1 normal, 3:1 texto grande) e sai com erro
+se algum reprovar. **Rode antes de trocar qualquer cor.**
+
+Armadilhas ja medidas e resolvidas:
+
+- `#f45f0d` com branco da **3.24:1** — vale so para texto grande em
+  negrito, ou seja, o CTA. Nunca para texto miudo.
+- `#8a8a81` (cinza quente) sobre a areia da **2.69:1** — reprovado. Nao e
+  cor de texto; serve para borda, icone decorativo e desabilitado. Texto
+  secundario usa `--cor-texto-suave` (#5c5b53, 5.3:1).
+- `#ca6129` como texto sobre a areia da **2.90:1** — reprovado. Laranja
+  como texto usa `--cor-acao-texto` (#9a4413, 5.1:1).
+- `#e9a475` tem luminancia media: preenchimento e borda, nunca texto.
+
+### Performance
+
+O alvo e tablet Android de entrada. Foram removidos `backdrop-filter:
+blur()`, os gradientes de tela inteira e as sombras longas; a sombra
+padrao e curta (`--sombra`). O `transform` no hover dos botoes tambem
+saiu: em touch o estado ficava grudado depois do toque e a grade inteira
+parecia tremer.
+
+### Navegacao: abas no topo, nao barra lateral
+
+O conceito visual que originou esta issue trazia uma barra lateral de
+92px com Caixa/Producao/Fechamento/Ajustes. **Foi decidido manter as tres
+abas no topo mais a engrenagem** (issue #68), por dois motivos:
+
+- em tablet deitado, largura e o recurso escasso — a coluna lateral
+  comeria espaco justamente da grade de produtos e do carrinho, que sao
+  a tela de trabalho;
+- Ajustes continua fora da barra principal de proposito. A barra e o que
+  a equipe toca com cliente na frente; configuracao e coisa de antes de
+  abrir a barraca.
+
+O visual da barra lateral (fundo carvao, item ativo em papel solido) foi
+absorvido pelo cabecalho, entao a identidade do conceito ficou sem custar
+largura de tela.
+
+### Previa para aprovacao
+
+`npm run previa` gera `public/previa-visual.html`: as 4 telas empilhadas
+usando a folha de estilo real (nao uma copia). `?tela=N` isola uma tela.
+Como le o `app.css` de verdade, nao existe previa bonita divergindo do
+que o operador ve no balcao.
