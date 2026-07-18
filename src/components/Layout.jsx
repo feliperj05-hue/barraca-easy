@@ -6,6 +6,9 @@ import ConnectionStatus from './ConnectionStatus.jsx'
 // barra e o que a equipe usa com cliente na frente (Caixa, Producao,
 // Fechamento). Configuracao e coisa de antes de abrir a barraca, entao vive
 // num canto proprio — perto do botao Sair, longe do dedo apressado.
+//
+// O botao de anotar problema do piloto (#77) entra pelo mesmo canto, como slot:
+// o Layout so reserva o lugar, quem decide se ele existe e o App.
 export default function Layout({
   screens,
   current,
@@ -16,6 +19,7 @@ export default function Layout({
   role,
   onLogout,
   onOpenSettings,
+  pilotNote,
 }) {
   const settingsActive = current === 'settings'
 
@@ -45,6 +49,7 @@ export default function Layout({
           ))}
         </nav>
         <div className="app-account">
+          {pilotNote}
           {onOpenSettings && (
             <button
               type="button"

@@ -67,6 +67,13 @@ export const SETTINGS_SECTIONS = [
     roles: ['dono'],
   },
   {
+    id: 'piloto',
+    label: 'Piloto',
+    icon: '📣',
+    hint: 'Anotações do dia e relatório pra enviar',
+    roles: ['dono'],
+  },
+  {
     id: 'printing',
     label: 'Impressão',
     icon: '🧾',
