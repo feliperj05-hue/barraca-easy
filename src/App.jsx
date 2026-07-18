@@ -8,6 +8,9 @@ import Cashier from './routes/Cashier.jsx'
 import Production from './routes/Production.jsx'
 import Closing from './routes/Closing.jsx'
 import Settings from './routes/Settings.jsx'
+import TrialBanner from './components/TrialBanner.jsx'
+import Admin from './routes/Admin.jsx'
+import { souAdmin } from './services/adminService.js'
 import { useAuth } from './auth/AuthContext.jsx'
 import { setTicketWidth, TICKET_WIDTH_AUTO, TICKET_WIDTH_MANUAL } from './utils/tickets.js'
 import { getTicketMode, isAutoTicket } from './services/settingsService.js'
@@ -54,7 +57,7 @@ import { downloadClosingReport } from './services/reportService.js'
 const ORDERS_REFRESH_MS = 10000
 
 export default function App() {
-  const { role, membership, user, session, signOut } = useAuth()
+  const { role, membership, user, session, signOut, subscription } = useAuth()
 
   // Largura da senha (#79). Vive num lugar so porque `normalizeTicket` e
   // chamada la no fundo do orderService, inclusive no replay da fila offline,
@@ -69,6 +72,21 @@ export default function App() {
   // role null => modo local (sem nuvem) ou dono; libera tudo exceto quando
   // explicitamente for 'operador'.
   const navScreens = visibleFor(NAV_SCREENS, role)
+
+  // Admin da plataforma (#91). Nao e papel da barraca (dono/operador) e sim
+  // um flag da plataforma, por isso vem de uma pergunta ao banco em vez de
+  // sair de `permissions.js`. Esconder a aba e so conveniencia: as RPCs de
+  // admin recusam quem nao esta em `plataforma_admins` de qualquer jeito.
+  const [isAdmin, setIsAdmin] = useState(false)
+  useEffect(() => {
+    let vivo = true
+    souAdmin().then((v) => {
+      if (vivo) setIsAdmin(v)
+    })
+    return () => {
+      vivo = false
+    }
+  }, [session])
   const canOpenSettings = canAccess(SETTINGS_SCREEN, role)
 
   const [screen, setScreen] = useState('cashier')
@@ -94,9 +112,14 @@ export default function App() {
   }, [])
 
   // Garante que o operador nunca fique numa tela que nao pode ver. Settings
-  // nao esta na barra, entao entra na checagem por fora dela.
+  // nao esta na barra, entao entra na checagem por fora dela. Clientes (admin
+  // da plataforma) idem: nao e papel da barraca, e flag de plataforma — e se
+  // o `isAdmin` chegar como falso, esta checagem sozinha ja devolve a pessoa
+  // para o Caixa mesmo que ela force a tela.
   const screenAllowed =
-    navScreens.some((s) => s.id === screen) || (screen === 'settings' && canOpenSettings)
+    navScreens.some((s) => s.id === screen) ||
+    (screen === 'settings' && canOpenSettings) ||
+    (screen === 'admin' && isAdmin)
   const currentScreen = screenAllowed ? screen : 'cashier'
 
   const notify = useCallback((message) => {
@@ -450,9 +473,15 @@ export default function App() {
     onResetMenu: handleResetMenu,
   }
 
+  // A aba Clientes so existe para o admin da plataforma; para todo o resto
+  // do mundo a barra continua exatamente como era.
+  const telasDaBarra = isAdmin
+    ? [...navScreens, { id: 'admin', label: 'Clientes' }]
+    : navScreens
+
   return (
     <Layout
-      screens={navScreens}
+      screens={telasDaBarra}
       current={currentScreen}
       onNavigate={setScreen}
       userLabel={(user && user.email) || null}
@@ -504,9 +533,12 @@ export default function App() {
           pilotContext={pilotContext}
           vendasNoCaixa={orders.length}
           onTicketModeChange={setTicketModeState}
+          subscription={subscription}
         />
       )}
+      {currentScreen === 'admin' && isAdmin && <Admin notify={notify} />}
       <Toast message={toast} />
+      <TrialBanner subscription={subscription} role={role} />
       <SyncAlerts />
     </Layout>
   )

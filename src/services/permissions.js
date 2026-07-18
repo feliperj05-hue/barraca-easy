@@ -75,6 +75,12 @@ export const SETTINGS_SECTIONS = [
     roles: ['dono'],
   },
   {
+    id: 'assinatura',
+    label: 'Minha assinatura',
+    hint: 'Plano, situação e histórico de cobrança',
+    roles: ['dono'],
+  },
+  {
     id: 'printing',
     label: 'Impressão',
     hint: 'Impressora térmica e layout do cupom',

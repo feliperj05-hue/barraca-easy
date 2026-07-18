@@ -18,7 +18,8 @@
     "senha-automatica": "node scripts/senha-automatica.mjs",
     "teclado": "node scripts/teclado.mjs",
     "fale-com-dev": "node scripts/fale-com-dev.mjs",
-    "lgpd": "node scripts/lgpd.mjs"
+    "lgpd": "node scripts/lgpd.mjs",
+    "assinatura": "node scripts/assinatura.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",
