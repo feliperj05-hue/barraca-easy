@@ -150,3 +150,37 @@ app continua no modo local (localStorage), sem alteracao.
 relatorio). Fechamentos passados nunca sao alterados (append-only).
 
 Pre-requisito: basta que o schema da #28 ja tenha sido aplicado no projeto.
+
+## Fale com o desenvolvedor — feedback (#85)
+
+O link discreto no rodape do app abre uma tela onde a pessoa reporta um
+problema, sugere uma melhoria ou faz um elogio. O recado vai para a tabela
+`feedback`.
+
+**Migration nova: `migrations/20260718200000_feedback.sql`.** Aplicar do jeito
+de sempre (SQL Editor, script idempotente) **nos dois projetos** (staging e
+producao).
+
+A tabela **nao** e a fonte da verdade. O app grava o recado em `localStorage`
+antes de tentar a rede, entao:
+
+- Sem a migration aplicada, sem internet ou em modo local sem conta, a tela
+  funciona igual e o recado fica guardado no aparelho.
+- O que ficou preso sobe sozinho na proxima abertura do app (o app marca o que
+  ja chegou pra nao mandar duas vezes).
+- Tudo aparece no relatorio do piloto, com a marca "chegou na nuvem: sim/nao".
+
+RLS: quem esta logado pode inserir (qualquer tenant — feedback nao e dado de
+venda, e travar por tenant impediria justamente quem esta com a associacao
+quebrada de reclamar disso). Anonimo nao insere, pra nao virar caixa de spam.
+No `select`, cada um so ve o proprio recado; a leitura geral e pelo painel do
+Supabase (`service_role`, que ignora RLS). Nao ha update nem delete.
+
+Para ler os recados:
+
+```sql
+select recebido_em, tipo, texto, tenant_nome, user_email, tela, online, modo
+from public.feedback
+order by recebido_em desc
+limit 50;
+```

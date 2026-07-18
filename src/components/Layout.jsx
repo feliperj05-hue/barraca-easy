@@ -7,8 +7,10 @@ import ConnectionStatus from './ConnectionStatus.jsx'
 // Fechamento). Configuracao e coisa de antes de abrir a barraca, entao vive
 // num canto proprio — perto do botao Sair, longe do dedo apressado.
 //
-// O botao de anotar problema do piloto (#77) entra pelo mesmo canto, como slot:
-// o Layout so reserva o lugar, quem decide se ele existe e o App.
+// O canal com o desenvolvedor (#85) NAO entra nesse canto. Ele era um megafone
+// do lado da engrenagem e vivia disputando atencao com quem estava vendendo.
+// Agora e um slot de rodape: fica no fim da pagina, em letra miuda, longe do
+// caminho do dedo apressado. Quem precisa procura; quem esta no balcao nem ve.
 export default function Layout({
   screens,
   current,
@@ -19,7 +21,7 @@ export default function Layout({
   role,
   onLogout,
   onOpenSettings,
-  pilotNote,
+  rodape,
 }) {
   const settingsActive = current === 'settings'
 
@@ -49,7 +51,6 @@ export default function Layout({
           ))}
         </nav>
         <div className="app-account">
-          {pilotNote}
           {onOpenSettings && (
             <button
               type="button"
@@ -81,6 +82,7 @@ export default function Layout({
         </div>
       </header>
       <main className="app-main">{children}</main>
+      {rodape && <footer className="app-footer">{rodape}</footer>}
     </div>
   )
 }

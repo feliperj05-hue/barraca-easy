@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Layout from './components/Layout.jsx'
 import Toast from './components/Toast.jsx'
 import SyncAlerts from './components/SyncAlerts.jsx'
-import PilotNoteButton from './components/PilotNoteButton.jsx'
+import DevFeedbackButton from './components/DevFeedbackButton.jsx'
 import Cashier from './routes/Cashier.jsx'
 import Production from './routes/Production.jsx'
 import Closing from './routes/Closing.jsx'
@@ -26,6 +26,7 @@ import {
   clearOrders,
 } from './services/orderService.js'
 import { initSync } from './services/syncQueue.js'
+import { reenviarPendentes } from './services/feedbackCloud.js'
 import { initNetStatus } from './services/netStatus.js'
 import { subscribeOrders } from './services/realtime.js'
 import { getSettings, selectMode, resetSettings } from './services/settingsService.js'
@@ -205,6 +206,20 @@ export default function App() {
       window.removeEventListener('focus', refresh)
     }
   }, [tenantCtx])
+
+  // Recado que ficou preso no aparelho (#85). Quem escreve reclamacao muitas
+  // vezes esta sem internet na hora — entao na abertura do app, com a sessao ja
+  // resolvida, tenta subir o que sobrou. Sem timer e sem insistencia: se falhar
+  // de novo, fica guardado e vai na proxima. Recado nao e venda; a fila de
+  // vendas tem motor proprio logo abaixo.
+  useEffect(() => {
+    reenviarPendentes({
+      tenantId: (membership && membership.tenantId) || null,
+      tenantNome: (membership && membership.tenantNome) || null,
+      userEmail: (user && user.email) || null,
+      role,
+    }).catch(() => {})
+  }, [membership, user, role])
 
   // Sincronizacao offline (issue #34): liga o motor da fila e recarrega
   // os pedidos quando a outbox sobe ao reconectar.
@@ -444,7 +459,9 @@ export default function App() {
       role={role}
       onLogout={session ? signOut : null}
       onOpenSettings={canOpenSettings ? () => setScreen('settings') : null}
-      pilotNote={<PilotNoteButton tela={screenLabel} notify={notify} />}
+      rodape={
+        <DevFeedbackButton tela={screenLabel} contexto={pilotContext} notify={notify} />
+      }
     >
       {currentScreen === 'cashier' && (
         <Cashier

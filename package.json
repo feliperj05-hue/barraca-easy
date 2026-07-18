@@ -16,7 +16,8 @@
     "sessao-offline": "node scripts/sessao-offline.mjs",
     "diario-piloto": "node scripts/diario-piloto.mjs",
     "senha-automatica": "node scripts/senha-automatica.mjs",
-    "teclado": "node scripts/teclado.mjs"
+    "teclado": "node scripts/teclado.mjs",
+    "fale-com-dev": "node scripts/fale-com-dev.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",

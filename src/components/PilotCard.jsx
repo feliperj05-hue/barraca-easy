@@ -64,10 +64,11 @@ export default function PilotCard({ notify, contexto }) {
         )}
       </div>
 
-      <h3 className="pilot-subtitle">Anotações ({notas.length})</h3>
+      <h3 className="pilot-subtitle">Recados ({notas.length})</h3>
       {notas.length === 0 && (
         <p className="muted">
-          Nenhuma anotação ainda. Durante a operação, use o botão 📣 lá no topo da tela.
+          Nenhum recado ainda. Durante a operação, use o link{' '}
+          <strong>Fale com o desenvolvedor</strong> no rodapé da tela.
         </p>
       )}
       <ul className="pilot-notes">
@@ -80,7 +81,8 @@ export default function PilotCard({ notify, contexto }) {
             {n.texto && <p className="pilot-note-text">“{n.texto}”</p>}
             <p className="muted small">
               {n.tela ? 'Tela: ' + n.tela + ' · ' : ''}
-              Conexão: {n.online ? 'ok' : 'caiu'} · Não enviados: {n.pendentes}
+              Conexão: {n.online ? 'ok' : 'caiu'} · Não enviados: {n.pendentes} ·{' '}
+              {n.enviado ? 'chegou na nuvem' : 'ainda no aparelho'}
             </p>
             <button
               type="button"
