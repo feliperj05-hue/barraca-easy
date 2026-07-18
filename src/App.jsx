@@ -33,6 +33,11 @@ import { downloadClosingReport } from './services/reportService.js'
 
 // Telas e quais papeis podem ve-las. Operador opera o caixa; dono gerencia
 // tudo. Sem papel (modo local sem nuvem) libera tudo.
+// De quanto em quanto tempo o aparelho reconfere os pedidos no servidor (#57).
+// 10s: rapido o bastante para a fila da producao, leve o bastante para o plano
+// de dados de uma barraca.
+const ORDERS_REFRESH_MS = 10000
+
 const ALL_SCREENS = [
   { id: 'cashier', label: 'Caixa', roles: ['dono', 'operador'] },
   { id: 'production', label: 'Produção', roles: ['dono', 'operador'] },
@@ -60,6 +65,18 @@ export default function App() {
   // efeito abaixo recarrega o histórico do tenant.
   const [toast, setToast] = useState(null)
   const toastTimer = useRef(null)
+
+  // Cada acao local (criar, chamar, entregar, cancelar, zerar) incrementa este
+  // contador. A recarga periodica (#57) compara o valor de antes e depois da
+  // ida ao servidor: se mudou no meio do caminho, a resposta ja nasceu velha e
+  // e descartada. Sem isso, marcar "Entregue" podia ver o pedido reaparecer na
+  // fila por ate 10s — parecendo bug bem na frente do cliente.
+  const ordersSeq = useRef(0)
+
+  const commitOrders = useCallback((list) => {
+    ordersSeq.current += 1
+    setOrders(list)
+  }, [])
 
   // Garante que o operador nunca fique numa tela que nao pode ver.
   const currentScreen = visibleScreens.some((s) => s.id === screen) ? screen : 'cashier'
@@ -110,6 +127,63 @@ export default function App() {
     }
   }, [tenantCtx, notify])
 
+  // Sincronizacao entre aparelhos (#57). O caixa lanca num aparelho e a
+  // producao acompanha em outro; sem isso a fila da cozinha so atualizava com
+  // refresh na mao — ou seja, pedido sumia da vista com fila na frente.
+  //
+  // Recarga periodica em vez de websocket: nao depende de habilitar publication
+  // no painel, e na praia (sinal oscilando) degrada melhor — perdeu uma volta,
+  // pega na proxima. So faz sentido no modo nuvem; no modo local o aparelho e
+  // um so e a fonte da verdade e o proprio localStorage.
+  useEffect(() => {
+    if (!tenantCtx) return
+
+    let active = true
+    let inFlight = false
+    let timer = null
+
+    const refresh = async () => {
+      // Nao empilha requisicao quando a rede esta lenta.
+      if (inFlight || !active) return
+      // Aba escondida (tablet bloqueado, outro app na frente) nao gasta dado.
+      if (document.visibilityState !== 'visible') return
+      inFlight = true
+      const seq = ordersSeq.current
+      try {
+        const list = await fetchOrders(tenantCtx)
+        // Se o operador mexeu na fila enquanto a resposta vinha, ela ja nasceu
+        // velha: descarta e deixa o estado local valer.
+        if (!active || seq !== ordersSeq.current) return
+        // Silencio no erro de proposito: numa praia com sinal ruim, um toast a
+        // cada 10s seria pior que o problema. A proxima volta corrige.
+        setOrders(list)
+      } catch {
+        /* mantem a ultima lista boa conhecida */
+      } finally {
+        inFlight = false
+      }
+    }
+
+    timer = setInterval(refresh, ORDERS_REFRESH_MS)
+
+    // Voltou pro primeiro plano ou a conexao voltou: atualiza na hora, sem
+    // esperar a proxima volta do relogio.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refresh()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('online', refresh)
+    window.addEventListener('focus', refresh)
+
+    return () => {
+      active = false
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('online', refresh)
+      window.removeEventListener('focus', refresh)
+    }
+  }, [tenantCtx])
+
   // Sincronizacao offline (issue #34): liga o motor da fila e recarrega
   // os pedidos quando a outbox sobe ao reconectar.
   useEffect(() => {
@@ -146,49 +220,49 @@ export default function App() {
     async (payload) => {
       try {
         const order = await createOrder(tenantCtx, payload)
-        setOrders(await fetchOrders(tenantCtx))
+        commitOrders(await fetchOrders(tenantCtx))
         return order
       } catch (e) {
         notify(e.message)
         return null
       }
     },
-    [tenantCtx, notify],
+    [tenantCtx, notify, commitOrders],
   )
 
   const handleCall = useCallback(
     async (id) => {
       try {
-        setOrders(await callOrder(tenantCtx, id))
+        commitOrders(await callOrder(tenantCtx, id))
       } catch {
         notify('Falha ao chamar a senha.')
       }
     },
-    [tenantCtx, notify],
+    [tenantCtx, notify, commitOrders],
   )
 
   const handleDeliver = useCallback(
     async (id) => {
       try {
-        setOrders(await deliverOrder(tenantCtx, id))
+        commitOrders(await deliverOrder(tenantCtx, id))
       } catch {
         notify('Falha ao marcar como entregue.')
       }
     },
-    [tenantCtx, notify],
+    [tenantCtx, notify, commitOrders],
   )
 
   const handleCancel = useCallback(
     async (id) => {
       if (!window.confirm('Cancelar este pedido? Ele sairá da fila e do fechamento.')) return
       try {
-        setOrders(await cancelOrder(tenantCtx, id))
+        commitOrders(await cancelOrder(tenantCtx, id))
         notify('Pedido cancelado.')
       } catch {
         notify('Falha ao cancelar o pedido.')
       }
     },
-    [tenantCtx, notify],
+    [tenantCtx, notify, commitOrders],
   )
 
   const handleSelectMode = useCallback(
@@ -289,7 +363,7 @@ export default function App() {
       // carregado do backend) e só então limpa os pedidos do tenant.
       await createClosing(tenantCtx, orders)
       await clearOrders(tenantCtx)
-      setOrders([])
+      commitOrders([])
       setClosings(await fetchClosings(tenantCtx))
       notify('Caixa fechado. Relatório disponível no histórico.')
     } catch {
