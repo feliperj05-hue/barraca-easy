@@ -3,6 +3,8 @@ import ProductGrid from '../components/ProductGrid.jsx'
 import CartPanel from '../components/CartPanel.jsx'
 import PaymentModal from '../components/PaymentModal.jsx'
 import { formatBRL } from '../utils/money.js'
+import { nextSequentialTicket } from '../utils/tickets.js'
+import { isAutoTicket } from '../services/settingsService.js'
 import {
   playAddToCart,
   playPaymentDone,
@@ -65,7 +67,7 @@ function saveDraftCart(cart) {
   }
 }
 
-export default function Cashier({ settings, menu, onCreateOrder, notify }) {
+export default function Cashier({ settings, menu, orders, onCreateOrder, notify }) {
   // A lista efetiva vem da prop `menu` (cardápio ja carregado pelo App, local
   // ou nuvem). Filtramos os visiveis, derivamos as categorias e um indice por
   // id para o carrinho.
@@ -143,17 +145,38 @@ export default function Cashier({ settings, menu, onCreateOrder, notify }) {
     })
   }
 
+  // Senha do modo automatico (#79). Sai dos pedidos do dia — nao ha contador
+  // guardado a parte. Fechar o caixa apaga os pedidos, entao a proxima venda
+  // volta pro 0001 sem ninguem precisar zerar nada.
+  //
+  // E CONGELADA no instante em que o popup abre, de proposito. O app recarrega
+  // os pedidos a cada 10s; se o numero fosse recalculado a cada volta, ele
+  // mudaria na tela enquanto o cliente passa o cartao — e o operador acabaria
+  // falando um numero e o sistema gravando outro.
+  const auto = isAutoTicket()
+  const [autoTicket, setAutoTicket] = useState(null)
+
   function openModal() {
     if (settings.operationMode !== 'cashier_production_sync') {
       return notify('Este modo está pré-configurado. O fluxo completo será implementado em fase futura.')
     }
     if (!items.length) return notify('Adicione pelo menos um item.')
     if (!payment) return notify('Selecione a forma de pagamento.')
+    setAutoTicket(auto ? nextSequentialTicket(orders || []) : null)
     setModalOpen(true)
   }
 
   async function confirmPaid(ticketValue) {
-    const order = await onCreateOrder({ items, payment, total, ticket: ticketValue })
+    // `autoTicket` viaja junto pro orderService saber que o numero foi dele, e
+    // nao do operador: se colidir com outro aparelho, ele pega o proximo em
+    // vez de devolver erro pra quem nao escolheu numero nenhum.
+    const order = await onCreateOrder({
+      items,
+      payment,
+      total,
+      ticket: ticketValue,
+      autoTicket: auto,
+    })
     if (!order) return // erro (ex: senha duplicada) já foi avisado via toast
     playPaymentDone()
     setModalOpen(false)
@@ -275,6 +298,7 @@ export default function Cashier({ settings, menu, onCreateOrder, notify }) {
       <PaymentModal
         open={modalOpen}
         total={total}
+        autoTicket={autoTicket}
         onClose={() => setModalOpen(false)}
         onConfirm={confirmPaid}
       />

@@ -116,3 +116,43 @@ export function selectMode(modeKey) {
 export function resetSettings() {
   return selectMode(DEFAULT_MODE)
 }
+
+// =====================================================================
+// Modo de senha (#79)
+// =====================================================================
+//
+// Guardado numa chave PROPRIA, separada dos modos de operacao. Motivo bem
+// concreto: `selectMode` sobrescreve as settings inteiras com o preset do
+// modo escolhido. Se a preferencia de senha morasse la, ela seria apagada
+// toda vez que alguem tocasse num cartao de modo de operacao — e ninguem
+// entenderia por que a barraca voltou a pedir senha na mao.
+
+const TICKET_MODE_KEY = 'barracaEasyTicketMode'
+
+export const TICKET_MODE_MANUAL = 'manual'
+export const TICKET_MODE_AUTO = 'auto'
+
+// Manual e o padrao: e como a barraca sempre trabalhou, e quem nunca abriu
+// essa configuracao nao pode ter o comportamento mudado embaixo do pe.
+export function getTicketMode() {
+  try {
+    const saved = localStorage.getItem(TICKET_MODE_KEY)
+    return saved === TICKET_MODE_AUTO ? TICKET_MODE_AUTO : TICKET_MODE_MANUAL
+  } catch {
+    return TICKET_MODE_MANUAL
+  }
+}
+
+export function setTicketMode(mode) {
+  const valor = mode === TICKET_MODE_AUTO ? TICKET_MODE_AUTO : TICKET_MODE_MANUAL
+  try {
+    localStorage.setItem(TICKET_MODE_KEY, valor)
+  } catch {
+    // sem localStorage o app segue no padrao; nao pode quebrar por isso
+  }
+  return valor
+}
+
+export function isAutoTicket(mode = getTicketMode()) {
+  return mode === TICKET_MODE_AUTO
+}

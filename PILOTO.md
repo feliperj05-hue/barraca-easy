@@ -47,12 +47,33 @@ Engrenagem (⚙️, canto de cima) → **Cardápio**.
 Engrenagem → **Modo de operação** → tem que estar em **Sincronizado com
 Produção**. Os outros dois modos ainda não estão prontos.
 
-### 5. Separar as senhas de papel
+### 5. Escolher o tipo de senha
 
-O sistema **não** imprime senha. A senha é aquele papelzinho numerado que você
-entrega na mão do cliente. Separe o bloco antes de abrir.
+Engrenagem → **Modo de operação** → painel **Senha do cliente**. Duas opções:
 
-### 6. Última conferida (5 minutos, ainda em casa)
+- **Senha manual** (é como vem de fábrica): você entrega o papelzinho e digita
+  o número no app. Três dígitos, tipo `027`. A digitação usa um teclado
+  numérico do próprio Barraca Easy, com teclas grandes — o teclado do Android
+  não aparece, então o valor do pedido continua na tela enquanto você digita.
+- **Senha automática**: o app dá o número sozinho, em ordem, começando do
+  `0001`. Você só lê o número em voz alta para o cliente. Quatro dígitos.
+
+Escolha **antes de abrir**, e não mude no meio do dia — o app inclusive trava a
+troca enquanto tiver venda no caixa aberto, porque misturar os dois tipos pode
+gerar dois clientes com a mesma senha.
+
+Nos dois casos, quando você fecha o caixa a contagem zera: no automático a
+próxima venda volta pro `0001`, no manual os números do dia são liberados e
+você pode usar o mesmo bloco de papel de novo.
+
+### 6. Separar as senhas de papel
+
+No modo **manual**, a senha é aquele papelzinho numerado que você entrega na
+mão do cliente — separe o bloco antes de abrir. No modo **automático** o app dá
+o número, mas vale ter o bloco do mesmo jeito, porque é o plano B se o app sair
+do ar.
+
+### 7. Última conferida (5 minutos, ainda em casa)
 
 Faça uma venda de mentira do começo ao fim:
 
@@ -61,7 +82,7 @@ papel → ver o pedido aparecer na **Produção** → **Chamar** → **Entregue*
 
 Depois **cancele** esse pedido de teste, pra ele não entrar no caixa do dia.
 
-### 7. Carregar tudo
+### 8. Carregar tudo
 
 Tablet **100% de bateria** e, se puder, leve o carregador ou uma bateria
 portátil. O app é leve, mas tela ligada o dia todo come bateria de qualquer
@@ -78,12 +99,14 @@ aparelho.
 3. Toca em **Confirmar pedido**.
 4. Aparece "Aguardando pagamento".
 5. Cliente paga (na maquininha, no Pix, em dinheiro — fora do app).
-6. Você entrega **a senha de papel** na mão dele.
-7. Você digita no app **qual senha entregou**.
-8. O pedido cai na tela da **Produção**.
+6. **No modo manual:** você entrega a senha de papel e digita no app qual
+   número entregou.
+   **No modo automático:** o app mostra a senha em número grande — você lê em
+   voz alta para o cliente e confirma.
+7. O pedido cai na tela da **Produção**.
 
-> O app **não** cobra e **não** gera senha. Quem cobra é você, quem dá a senha é
-> você. O app anota.
+> O app **não** cobra, em modo nenhum. Quem recebe o dinheiro é você; o app só
+> anota. A senha, essa sim, depende do modo que você escolheu lá no preparo.
 
 ### Aquele selo lá em cima
 

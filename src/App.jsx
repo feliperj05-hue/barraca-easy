@@ -8,6 +8,8 @@ import Production from './routes/Production.jsx'
 import Closing from './routes/Closing.jsx'
 import Settings from './routes/Settings.jsx'
 import { useAuth } from './auth/AuthContext.jsx'
+import { setTicketWidth, TICKET_WIDTH_AUTO, TICKET_WIDTH_MANUAL } from './utils/tickets.js'
+import { getTicketMode, isAutoTicket } from './services/settingsService.js'
 import {
   NAV_SCREENS,
   SETTINGS_SCREEN,
@@ -51,6 +53,16 @@ const ORDERS_REFRESH_MS = 10000
 
 export default function App() {
   const { role, membership, user, session, signOut } = useAuth()
+
+  // Largura da senha (#79). Vive num lugar so porque `normalizeTicket` e
+  // chamada la no fundo do orderService, inclusive no replay da fila offline,
+  // onde nao existe settings por perto. Trocar de tipo de senha com venda no
+  // caixa e bloqueado na tela, entao dentro de um mesmo expediente a largura
+  // nunca muda no meio — e "027" nunca convive com "0027".
+  const [ticketMode, setTicketModeState] = useState(() => getTicketMode())
+  useEffect(() => {
+    setTicketWidth(isAutoTicket(ticketMode) ? TICKET_WIDTH_AUTO : TICKET_WIDTH_MANUAL)
+  }, [ticketMode])
 
   // role null => modo local (sem nuvem) ou dono; libera tudo exceto quando
   // explicitamente for 'operador'.
@@ -438,6 +450,7 @@ export default function App() {
         <Cashier
           settings={settings}
           menu={menu}
+          orders={orders}
           onCreateOrder={handleCreateOrder}
           notify={notify}
         />
@@ -468,6 +481,8 @@ export default function App() {
           tenantNome={(membership && membership.tenantNome) || null}
           menuProps={menuProps}
           pilotContext={pilotContext}
+          vendasNoCaixa={orders.length}
+          onTicketModeChange={setTicketModeState}
         />
       )}
       <Toast message={toast} />
