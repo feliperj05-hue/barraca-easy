@@ -7,6 +7,11 @@ name: CI + Deploy (Firebase Hosting)
 #   (producao NAO sai no push por seguranca — piloto valida o staging primeiro.)
 # - workflow_dispatch (Run workflow) com environment=production: build com as
 #   chaves de PRODUCAO + publica no canal "live".
+# - repository_dispatch (event_type "deploy-production"): mesmo efeito do
+#   dispatch de producao, porem acionavel por API com permissao Contents:write.
+#   Existe porque o token do agente e fine-grained e NAO tem Actions:write, o
+#   que travava o deploy de producao em cima de quem pudesse clicar no botao
+#   (foi assim que a impressora ficou mergeada na main e fora do ar — #67).
 # - Pull request: build com chaves de STAGING + canal de preview temporario.
 #
 # Credenciais publicas do Supabase vem de Repository VARIABLES (a publishable
@@ -17,6 +22,8 @@ on:
   push:
     branches: [ main ]
   pull_request:
+  repository_dispatch:
+    types: [ deploy-production ]
   workflow_dispatch:
     inputs:
       environment:
@@ -58,6 +65,8 @@ jobs:
         id: target
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.environment }}" = "production" ]; then
+            echo "env=production" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "repository_dispatch" ]; then
             echo "env=production" >> "$GITHUB_OUTPUT"
           else
             echo "env=staging" >> "$GITHUB_OUTPUT"
@@ -106,7 +115,7 @@ jobs:
           projectId: ${{ vars.FIREBASE_PROJECT_ID }}
           expires: 7d
 
-      - name: Deploy PRODUCAO (dispatch environment=production)
+      - name: Deploy PRODUCAO (workflow_dispatch production ou repository_dispatch)
         if: ${{ steps.target.outputs.env == 'production' && env.FIREBASE_SERVICE_ACCOUNT != '' }}
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:

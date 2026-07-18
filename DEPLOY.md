@@ -26,10 +26,44 @@ quebrar.
 | Push na `main` | STAGING | canal `staging` (expira 30d, renova a cada push) |
 | Pull request | STAGING | canal de preview temporario (7d) |
 | Run workflow > environment = **production** | PRODUCAO | canal `live` (producao) |
+| `repository_dispatch` tipo `deploy-production` (API) | PRODUCAO | canal `live` (producao) |
 
-Producao **nunca** sai sozinha num push: so via disparo manual
-(Actions > CI + Deploy > Run workflow > environment = production). Trava
-proposital pra so ir pra producao depois do staging validado.
+Producao **nunca** sai sozinha num push. Trava proposital pra so ir pra
+producao depois do staging validado. Existem duas formas de publicar:
+
+**1. Pela interface (Felipe):** Actions > CI + Deploy > Run workflow >
+environment = production.
+
+**2. Por API (agente/automacao):**
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $GH_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  https://api.github.com/repos/feliperj05-hue/barraca-easy/dispatches \
+  -d '{"event_type":"deploy-production"}'
+```
+
+O caminho por API existe porque `workflow_dispatch` exige permissao
+**Actions: write**, que o token fine-grained do agente nao tem (retorna 403).
+Ja `repository_dispatch` exige so **Contents: write**. Sem isso o deploy de
+producao dependia de alguem clicar num botao — foi exatamente assim que os PRs
+da impressora (#64, #66) ficaram mergeados na `main` e fora do ar por horas
+(issue #67).
+
+`repository_dispatch` sempre roda no **branch padrao (`main`)**, entao publica o
+que estiver na main no momento do disparo.
+
+### Conferir o deploy de verdade
+
+Nao confie no "deploy succeeded" do CI — valide o artefato publicado:
+
+```bash
+BUNDLE=$(curl -s https://barraca-easy.web.app/ | grep -o '/assets/index-[^"]*\.js' | head -1)
+curl -s "https://barraca-easy.web.app$BUNDLE" > /tmp/bundle.js
+wc -c /tmp/bundle.js
+grep -c -i "usb" /tmp/bundle.js   # esperado: > 0 desde a impressora (#63)
+```
 
 Sem `FIREBASE_SERVICE_ACCOUNT`, o pipeline so valida lint/build (nao publica, nao
 falha). Se faltar VARIABLE do Supabase do ambiente alvo, o build **falha de
