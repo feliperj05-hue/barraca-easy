@@ -221,3 +221,55 @@ sem isso ele ficaria preso numa versao antiga.
 
 O `firebase.json` serve `/sw.js` com `Cache-Control: no-cache` — se o proprio
 SW ficar em cache do navegador, a atualizacao trava.
+
+
+---
+
+# Qual URL usar no tablet (e por que o staging expira) — issue #54
+
+**Resumo pratico: o tablet do piloto instala o app a partir do `live`
+(`https://barraca-easy.web.app`), NUNCA da URL do canal `staging`.**
+
+## O canal staging expira
+
+Canal do Firebase Hosting que nao seja o `live` tem prazo de validade. O nosso
+esta no maximo permitido:
+
+| Canal | URL | Expira? |
+|---|---|---|
+| `live` (producao) | `https://barraca-easy.web.app` | **Nao.** Permanente. |
+| `staging` | `https://barraca-easy--staging-<sufixo>.web.app` | **Sim, 30 dias** (teto do Firebase) |
+| preview de PR | `https://barraca-easy--pr<N>-<branch>-<sufixo>.web.app` | Sim, 7 dias |
+
+Confirmado no log do deploy, nao e suposicao: `expireTime` veio
+`2026-08-17T12:44:24Z` para o deploy de 18/07.
+
+**Cada deploy renova os 30 dias.** Enquanto houver push na `main` de tempos em
+tempos, o staging se mantem de pe sozinho. Se o projeto ficar 30 dias parado, o
+canal cai.
+
+> `expires: 30d` no `deploy.yml` ja e o maximo. Nao adianta pedir mais — o
+> default da action seria so `7d`, entao a gente ja esta no teto.
+
+## Por que isso e serio para PWA (e nao so um link quebrado)
+
+PWA e amarrado a **origem** (o dominio). Instalar do canal staging e depois
+migrar pro `live` nao e "trocar o atalho":
+
+- O app instalado do staging vira **outro app** aos olhos do navegador.
+- `localStorage`, IndexedDB, fila offline e o service worker **nao migram**.
+  Sao de outra origem.
+- Quando o canal expirar, o icone na tela inicial abre em **pagina morta**, no
+  meio do expediente da barraca.
+
+Ou seja: instalar do staging significaria reinstalar tudo depois e **perder o
+que estiver so no aparelho**.
+
+## Regra pratica
+
+- **Staging** serve para o dono testar no navegador (roteiro de teste manual
+  acima) — inclusive do proprio tablet, mas **sem instalar**.
+- **Live** e de onde o tablet do piloto instala. Publique em producao antes de
+  entregar o tablet para a barraca.
+- **Preview de PR** e so para conferir uma mudanca antes do merge. Some em 7
+  dias, e normal.
