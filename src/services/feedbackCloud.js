@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient.js'
 import { notasNaoEnviadas, marcarEnviada } from './pilotLog.js'
+import { resumoAparelho, origemDoApp } from './privacidade.js'
 
 // Envio do "Fale com o desenvolvedor" (#85).
 //
@@ -43,6 +44,11 @@ export function podeEnviar() {
 
 // Monta a linha. Nada aqui e sensivel: sem senha, sem token, sem chave. O
 // e-mail e o do proprio operador logado, que o dono da barraca ja conhece.
+//
+// Minimizacao (#87): o aparelho vai como "Android 13 · Chrome" e nao como a
+// string inteira de user-agent, e a URL vira so a origem. O user-agent completo
+// identifica um aparelho com uma precisao que eu nunca precisei pra achar bug —
+// era dado guardado sem proposito, e dado sem proposito e so risco.
 function linha(nota, contexto) {
   const c = contexto || {}
   return {
@@ -57,8 +63,8 @@ function linha(nota, contexto) {
     user_email: c.userEmail || null,
     papel: c.role || null,
     modo: c.modo || null,
-    app_url: typeof location !== 'undefined' ? location.href : null,
-    navegador: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+    app_url: typeof location !== 'undefined' ? origemDoApp(location.href) : null,
+    navegador: typeof navigator !== 'undefined' ? resumoAparelho(navigator.userAgent) : null,
     instalado: Boolean(c.standalone),
     criado_em: nota.ts,
   }

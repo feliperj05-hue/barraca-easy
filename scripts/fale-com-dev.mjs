@@ -31,10 +31,10 @@ const btnAntigo = await pagina.locator('.pilot-note-btn').count()
 ok('Botao antigo do piloto nao existe mais', btnAntigo === 0, btnAntigo + ' encontrados')
 
 // --- 2. Entrada discreta, em todas as telas ---------------------------
-const link = pagina.locator('.dev-feedback-link')
+const link = pagina.getByRole('button', { name: 'Fale com o desenvolvedor' })
 ok('Link no rodape com o rotulo pedido', (await link.innerText()).trim() === 'Fale com o desenvolvedor')
 const noRodape = await pagina.evaluate(() => {
-  const l = document.querySelector('.dev-feedback-link')
+  const l = document.querySelector('.app-footer .dev-feedback-link')
   const main = document.querySelector('.app-main')
   return l.getBoundingClientRect().top > main.getBoundingClientRect().top
 })
@@ -43,12 +43,13 @@ ok('Fica no rodape, abaixo do conteudo', noRodape)
 for (const tela of ['Produção', 'Fechamento']) {
   await pagina.getByRole('button', { name: tela, exact: true }).click()
   await pagina.waitForTimeout(200)
-  ok('Link continua na tela ' + tela, (await pagina.locator('.dev-feedback-link').count()) === 1)
+  const achados = await pagina.getByRole('button', { name: 'Fale com o desenvolvedor' }).count()
+  ok('Link continua na tela ' + tela, achados === 1, achados + ' encontrado(s)')
 }
 await pagina.getByRole('button', { name: 'Caixa', exact: true }).click()
 
 // --- 3. A tela de feedback --------------------------------------------
-await pagina.locator('.dev-feedback-link').click()
+await pagina.getByRole('button', { name: 'Fale com o desenvolvedor' }).click()
 await pagina.waitForSelector('.dev-feedback-modal')
 const titulo = await pagina.locator('.dev-feedback-modal h2').innerText()
 ok('Abre a tela com o titulo certo', titulo.trim() === 'Fale com o desenvolvedor', titulo)
@@ -84,7 +85,7 @@ ok('Contexto automatico junto (tela/conexao)', guardado[0] && guardado[0].tela =
 ok('Marcado como ainda nao enviado (sem nuvem)', guardado[0] && guardado[0].enviado === false)
 
 // Problema pode ir sem texto: o contexto ja diz muita coisa.
-await pagina.locator('.dev-feedback-link').click()
+await pagina.getByRole('button', { name: 'Fale com o desenvolvedor' }).click()
 await pagina.locator('.dev-feedback-tipo', { hasText: 'problema' }).click()
 ok('Problema sem texto pode ser enviado', !(await pagina.getByRole('button', { name: 'Enviar' }).isDisabled()))
 await pagina.getByRole('button', { name: 'Enviar' }).click()

@@ -20,6 +20,7 @@
 
 import { incidentAll, outboxAll, cacheGet } from './offlineDb.js'
 import { getNetStatus } from './netStatus.js'
+import { filtrarPorRetencao, resumoAparelho, DIAS_RETENCAO_LOCAL } from './privacidade.js'
 
 const KEY = 'barracaEasyPilotLog'
 const LIMITE = 300 // teto de sanidade; um dia de barraca nao passa disso
@@ -75,6 +76,19 @@ function ler() {
   }
 }
 
+// Retencao (#87): recado com mais de 90 dias sai do aparelho sozinho.
+//
+// Roda na leitura, e nao num timer, de proposito: nao existe app aberto que
+// nao leia essa lista, entao a limpeza acontece na pratica sempre — sem
+// agendador, sem processo em segundo plano, sem mais uma coisa pra quebrar.
+// Se apagou alguem, regrava na hora; se nao, nao mexe no storage a toa.
+export function aplicarRetencao() {
+  const itens = ler()
+  const mantidos = filtrarPorRetencao(itens)
+  if (mantidos.length !== itens.length) gravar(mantidos)
+  return { apagados: itens.length - mantidos.length, mantidos: mantidos.length }
+}
+
 function gravar(itens) {
   try {
     localStorage.setItem(KEY, JSON.stringify(itens.slice(-LIMITE)))
@@ -85,8 +99,11 @@ function gravar(itens) {
 }
 
 export function listarNotas() {
+  aplicarRetencao()
   return ler().slice().reverse() // mais recente primeiro
 }
+
+export { DIAS_RETENCAO_LOCAL }
 
 // Registra a queixa junto com o estado do app naquele momento. O estado e o
 // que transforma "travou" em informacao: se a fila tinha 12 pendentes e o selo
@@ -175,8 +192,10 @@ export async function montarDiagnostico(info) {
   L.push('Modo de operacao: ' + (dados.modo || '(nao informado)'))
   L.push('Endereco do app: ' + (typeof location !== 'undefined' ? location.href : '-'))
   L.push('Instalado como app (tela cheia): ' + (dados.standalone ? 'sim' : 'nao'))
-  L.push('Navegador: ' + (typeof navigator !== 'undefined' ? navigator.userAgent : '-'))
+  // Resumo, nao a string inteira (#87). Pra investigar bug isto basta.
+  L.push('Aparelho: ' + (typeof navigator !== 'undefined' ? resumoAparelho(navigator.userAgent) : '-'))
   L.push('Tela: ' + (typeof screen !== 'undefined' ? screen.width + 'x' + screen.height : '-'))
+  L.push('Recados guardados neste aparelho por ate ' + DIAS_RETENCAO_LOCAL + ' dias.')
   L.push('')
   L.push('--- CONEXAO AGORA ---')
   L.push('Falando com a nuvem: ' + (net.online ? 'sim' : 'NAO'))
