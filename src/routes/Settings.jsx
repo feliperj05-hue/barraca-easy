@@ -4,6 +4,7 @@ import CloudStatus from '../components/CloudStatus.jsx'
 import PrinterSettingsCard from '../components/PrinterSettingsCard.jsx'
 import BusinessSettingsCard from '../components/BusinessSettingsCard.jsx'
 import PilotCard from '../components/PilotCard.jsx'
+import SubscriptionCard from '../components/SubscriptionCard.jsx'
 import TicketModeCard from '../components/TicketModeCard.jsx'
 import MenuAdmin from './MenuAdmin.jsx'
 import Members from './Members.jsx'
@@ -31,6 +32,7 @@ export default function Settings({
   pilotContext,
   vendasNoCaixa,
   onTicketModeChange,
+  subscription,
 }) {
   const sections = visibleFor(SETTINGS_SECTIONS, role)
   const [active, setActive] = useState(() => (sections[0] ? sections[0].id : 'mode'))
@@ -119,6 +121,8 @@ export default function Settings({
           )}
 
           {current === 'piloto' && <PilotCard notify={notify} contexto={pilotContext} />}
+
+          {current === 'assinatura' && <SubscriptionCard subscription={subscription} />}
 
           {current === 'printing' && <PrinterSettingsCard notify={notify} />}
 

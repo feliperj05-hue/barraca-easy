@@ -8,6 +8,7 @@ import Cashier from './routes/Cashier.jsx'
 import Production from './routes/Production.jsx'
 import Closing from './routes/Closing.jsx'
 import Settings from './routes/Settings.jsx'
+import TrialBanner from './components/TrialBanner.jsx'
 import { useAuth } from './auth/AuthContext.jsx'
 import { setTicketWidth, TICKET_WIDTH_AUTO, TICKET_WIDTH_MANUAL } from './utils/tickets.js'
 import { getTicketMode, isAutoTicket } from './services/settingsService.js'
@@ -54,7 +55,7 @@ import { downloadClosingReport } from './services/reportService.js'
 const ORDERS_REFRESH_MS = 10000
 
 export default function App() {
-  const { role, membership, user, session, signOut } = useAuth()
+  const { role, membership, user, session, signOut, subscription } = useAuth()
 
   // Largura da senha (#79). Vive num lugar so porque `normalizeTicket` e
   // chamada la no fundo do orderService, inclusive no replay da fila offline,
@@ -504,9 +505,11 @@ export default function App() {
           pilotContext={pilotContext}
           vendasNoCaixa={orders.length}
           onTicketModeChange={setTicketModeState}
+          subscription={subscription}
         />
       )}
       <Toast message={toast} />
+      <TrialBanner subscription={subscription} role={role} />
       <SyncAlerts />
     </Layout>
   )

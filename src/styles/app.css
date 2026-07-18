@@ -2587,3 +2587,181 @@ button:disabled {
 .privacy-actions {
   grid-template-columns: 1fr;
 }
+
+/* =====================================================================
+   Assinatura / SaaS (#90, #91)
+   ===================================================================== */
+
+/* Tela de barraca bloqueada. Usa o mesmo cartao do login: quem cai aqui esta
+   fora do app, e a linguagem visual precisa dizer isso sem susto. */
+.bloqueio-card {
+  max-width: 34rem;
+  text-align: left;
+}
+
+.bloqueio-titulo {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 1.35rem;
+  color: var(--cor-perigo);
+}
+
+.bloqueio-texto {
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+.bloqueio-cobrancas {
+  background: var(--cor-superficie-2);
+  border: 1px solid var(--cor-borda);
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  margin: 1rem 0;
+}
+
+.bloqueio-cobrancas h3,
+.bloqueio-pix h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.bloqueio-cobrancas ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.bloqueio-cobrancas li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.bloqueio-total {
+  margin: 0.6rem 0 0;
+  border-top: 1px solid var(--cor-borda);
+  padding-top: 0.5rem;
+}
+
+.bloqueio-pix {
+  margin: 1rem 0;
+}
+
+/* A chave Pix e para ser lida e digitada em outro aparelho: monoespacada,
+   quebrando linha, com area de toque folgada. */
+.pix-chave {
+  display: block;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 1.05rem;
+  background: var(--cor-superficie-2);
+  border: 1px dashed var(--cor-borda-forte);
+  border-radius: 0.6rem;
+  padding: 0.7rem 0.85rem;
+  word-break: break-all;
+}
+
+/* Faixa fina de aviso de teste: informa sem bloquear o balcao. */
+.trial-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  align-items: baseline;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  background: var(--cor-acao-tint);
+  border-top: 1px solid var(--cor-acento-suave);
+  color: var(--cor-texto);
+  font-size: 0.95rem;
+}
+
+/* --- Cartao "Minha assinatura" e tabelas de cobranca --- */
+
+.assinatura-dados {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.85rem;
+  margin: 0 0 1.25rem;
+}
+
+.assinatura-dados dt {
+  font-size: 0.85rem;
+  color: var(--cor-texto-suave);
+  margin-bottom: 0.15rem;
+}
+
+.assinatura-dados dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.assinatura-rodape {
+  margin-top: 1rem;
+  line-height: 1.45;
+}
+
+.tabela-cobrancas {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.tabela-cobrancas th,
+.tabela-cobrancas td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.tabela-cobrancas th {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--cor-texto-suave);
+}
+
+/* Selos de situacao. Cor sozinha nao comunica (daltonismo, sol na tela do
+   tablet): o rotulo em texto continua sendo a informacao principal, a cor so
+   ajuda a varrer a lista. */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.status-ativa,
+.cobranca-paga {
+  background: #e3f0e1;
+  border-color: var(--cor-status-ok);
+  color: var(--cor-status-ok-texto);
+}
+
+.status-teste {
+  background: var(--cor-acao-tint);
+  border-color: var(--cor-acento-suave);
+  color: var(--cor-acao-texto);
+}
+
+.status-suspensa,
+.status-cancelada,
+.cobranca-aberta {
+  background: var(--cor-perigo-tint);
+  border-color: var(--cor-perigo);
+  color: var(--cor-perigo);
+}
+
+.cobranca-cancelada {
+  background: var(--cor-superficie-2);
+  border-color: var(--cor-borda-forte);
+  color: var(--cor-texto-suave);
+}

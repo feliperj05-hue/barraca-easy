@@ -1,6 +1,11 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react"
 import { supabase, isSupabaseConfigured } from "../services/supabaseClient.js"
 import {
+  loadSubscription,
+  readCachedSubscription,
+  clearSubscriptionCache,
+} from "../services/subscriptionService.js"
+import {
   loadMembership,
   signOut as doSignOut,
   cacheMembership,
@@ -20,8 +25,15 @@ export function AuthProvider({ children }) {
   // continua operando; so o que depende do servidor fica em espera.
   const [staleSession, setStaleSession] = useState(false)
   const [membership, setMembership] = useState(null)
+  // Assinatura da barraca (#90). Vive junto do vinculo porque depende dele:
+  // sem tenant resolvido nao ha assinatura para consultar.
+  const [subscription, setSubscription] = useState(null)
   const [loading, setLoading] = useState(true)
   const resolving = useRef(false)
+  // `refreshMembership` precisa disparar a assinatura, mas `refreshSubscription`
+  // e declarado depois. A ref quebra o ciclo sem recriar os callbacks a cada
+  // render (o que reassinaria os listeners de auth sem necessidade).
+  const refreshSubscriptionRef = useRef(async () => null)
 
   // Resolve o vinculo do usuario. A distincao que importa (#73):
   //
@@ -40,13 +52,33 @@ export function AuthProvider({ children }) {
       const m = await loadMembership()
       cacheMembership(userId, m)
       setMembership(m)
+      if (m) refreshSubscriptionRef.current(m.tenantId)
+      else setSubscription(null)
       return m
     } catch {
       const cached = readCachedMembership(userId)
       setMembership(cached)
+      // Sem servidor, o status da assinatura sai do cache local: barraca em
+      // dia nao pode parar so porque o sinal caiu.
+      setSubscription(cached ? readCachedSubscription(cached.tenantId) : null)
       return cached
     }
   }, [])
+
+  // Recarrega a assinatura do tenant atual. Nunca lanca: se o servidor nao
+  // responder, o proprio servico ja cai no ultimo status conhecido, e um erro
+  // aqui nao pode derrubar a arvore inteira do app.
+  const refreshSubscription = useCallback(async (tenantId) => {
+    if (!isSupabaseConfigured || !tenantId) {
+      setSubscription(null)
+      return null
+    }
+    const { sub } = await loadSubscription(tenantId)
+    setSubscription(sub)
+    return sub
+  }, [])
+
+  refreshSubscriptionRef.current = refreshSubscription
 
   // Espelho do estado degradado: os listeners de "voltou o sinal" leem daqui
   // para o efeito nao precisar reassinar a cada mudanca de estado.
@@ -62,7 +94,10 @@ export function AuthProvider({ children }) {
       setSession(s)
       setStaleSession(stale)
       if (s) await refreshMembership(s.user.id)
-      else setMembership(null)
+      else {
+        setMembership(null)
+        setSubscription(null)
+      }
     } finally {
       resolving.current = false
     }
@@ -101,6 +136,8 @@ export function AuthProvider({ children }) {
       setSession(null)
       setStaleSession(false)
       setMembership(null)
+      setSubscription(null)
+      clearSubscriptionCache()
     })
 
     // Quando o sinal volta, tenta sair do modo degradado na hora em vez de
@@ -129,7 +166,9 @@ export function AuthProvider({ children }) {
     user: session ? session.user : null,
     membership,
     role: membership ? membership.papel : null,
+    subscription,
     refreshMembership,
+    refreshSubscription,
     signOut: doSignOut,
   }
 
