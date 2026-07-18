@@ -2,12 +2,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Layout from './components/Layout.jsx'
 import Toast from './components/Toast.jsx'
 import SyncAlerts from './components/SyncAlerts.jsx'
+import PilotNoteButton from './components/PilotNoteButton.jsx'
 import Cashier from './routes/Cashier.jsx'
 import Production from './routes/Production.jsx'
 import Closing from './routes/Closing.jsx'
 import Settings from './routes/Settings.jsx'
 import { useAuth } from './auth/AuthContext.jsx'
-import { NAV_SCREENS, SETTINGS_SCREEN, canAccess, visibleFor } from './services/permissions.js'
+import {
+  NAV_SCREENS,
+  SETTINGS_SCREEN,
+  ALL_SCREENS,
+  canAccess,
+  visibleFor,
+} from './services/permissions.js'
 import {
   fetchOrders,
   createOrder,
@@ -388,6 +395,23 @@ export default function App() {
 
   // Cardapio virou secao de Configuracoes (#68); os handlers continuam aqui e
   // descem agrupados, sem mudar nenhuma regra de negocio.
+  // Nome da tela em portugues, so pra anotacao do piloto sair legivel (#77).
+  const screenLabel = (ALL_SCREENS.find((s) => s.id === currentScreen) || {}).label || currentScreen
+
+  // O que vai no cabecalho do relatorio do piloto. Tudo que ja temos aqui e
+  // que ajuda a entender de que aparelho e de que barraca veio a queixa.
+  const pilotContext = {
+    tenantId: (membership && membership.tenantId) || null,
+    tenantNome: (membership && membership.tenantNome) || null,
+    userEmail: (user && user.email) || null,
+    role,
+    modo: settings.operationMode,
+    standalone:
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(display-mode: standalone)').matches,
+  }
+
   const menuProps = {
     menu,
     onSetPrice: handleSetPrice,
@@ -408,6 +432,7 @@ export default function App() {
       role={role}
       onLogout={session ? signOut : null}
       onOpenSettings={canOpenSettings ? () => setScreen('settings') : null}
+      pilotNote={<PilotNoteButton tela={screenLabel} notify={notify} />}
     >
       {currentScreen === 'cashier' && (
         <Cashier
@@ -442,6 +467,7 @@ export default function App() {
           role={role}
           tenantNome={(membership && membership.tenantNome) || null}
           menuProps={menuProps}
+          pilotContext={pilotContext}
         />
       )}
       <Toast message={toast} />

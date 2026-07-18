@@ -3,6 +3,7 @@ import OperationModeCard from '../components/OperationModeCard.jsx'
 import CloudStatus from '../components/CloudStatus.jsx'
 import PrinterSettingsCard from '../components/PrinterSettingsCard.jsx'
 import BusinessSettingsCard from '../components/BusinessSettingsCard.jsx'
+import PilotCard from '../components/PilotCard.jsx'
 import MenuAdmin from './MenuAdmin.jsx'
 import Members from './Members.jsx'
 import { getModeList, getCurrentMode } from '../services/settingsService.js'
@@ -25,6 +26,7 @@ export default function Settings({
   role,
   tenantNome,
   menuProps,
+  pilotContext,
 }) {
   const sections = visibleFor(SETTINGS_SECTIONS, role)
   const [active, setActive] = useState(() => (sections[0] ? sections[0].id : 'mode'))
@@ -108,6 +110,8 @@ export default function Settings({
               </div>
             </>
           )}
+
+          {current === 'piloto' && <PilotCard notify={notify} contexto={pilotContext} />}
 
           {current === 'printing' && <PrinterSettingsCard notify={notify} />}
 
