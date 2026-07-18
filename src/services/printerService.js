@@ -45,6 +45,27 @@ export function getPrinterSettings() {
   return { ...DEFAULT_PRINTER_SETTINGS }
 }
 
+// --- Largura do papel --------------------------------------------------
+//
+// A largura e config (padrao da barraca) E escolha de momento (issue #65). No
+// balcao com fila ninguem quer um seletor a mais por venda, entao o desenho e:
+// imprime no padrao com um toque, imprime na outra largura com um toque, e a
+// escolha feita na hora vira o novo padrao. Trocou a bobina, o app segue nela.
+export const PAPER_WIDTHS = [58, 80]
+
+export function normalizeWidth(width) {
+  return Number(width) === 80 ? 80 : 58
+}
+
+export function otherPaperWidth(width) {
+  return normalizeWidth(width) === 80 ? 58 : 80
+}
+
+// Grava a largura escolhida como novo padrao e devolve a config ja atualizada.
+export function setPaperWidth(width) {
+  return savePrinterSettings({ paperWidth: normalizeWidth(width) })
+}
+
 export function savePrinterSettings(patch) {
   const next = { ...getPrinterSettings(), ...patch }
   try {
@@ -205,4 +226,12 @@ export async function printOrder(order, settings = getPrinterSettings()) {
   } catch (err) {
     return { printed: false, reason: err?.message || 'Falha ao imprimir.' }
   }
+}
+
+// Imprime forcando uma largura e deixa essa largura como novo padrao (#65).
+// Usado pelos botoes de escolha na hora, no caixa e no cupom de teste.
+export async function printOrderAtWidth(order, width) {
+  const settings = setPaperWidth(width)
+  const result = await printOrder(order, settings)
+  return { ...result, settings }
 }
