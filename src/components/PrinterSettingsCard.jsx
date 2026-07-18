@@ -9,6 +9,8 @@ import {
   describeDevice,
   buildReceiptOutput,
   printOrder,
+  printOrderAtWidth,
+  otherPaperWidth,
 } from '../services/printerService.js'
 import { sampleOrder } from '../services/receiptLayout.js'
 
@@ -56,8 +58,13 @@ export default function PrinterSettingsCard({ notify }) {
     }
   }
 
-  async function testPrint() {
-    const result = await printOrder(sampleOrder(), settings)
+  // Teste sai na largura atual; passando largura, testa na outra bobina e ja
+  // deixa ela como padrao — mesma regra do caixa (#65).
+  async function testPrint(width) {
+    const result = width
+      ? await printOrderAtWidth(sampleOrder(), width)
+      : await printOrder(sampleOrder(), settings)
+    if (result.settings) setSettings(result.settings)
     notify(result.printed ? 'Cupom de teste enviado.' : result.reason)
   }
 
@@ -84,8 +91,21 @@ export default function PrinterSettingsCard({ notify }) {
         <button type="button" className="btn-secondary" onClick={connect} disabled={!supported}>
           Conectar impressora
         </button>
-        <button type="button" className="btn-ghost" onClick={testPrint} disabled={!supported}>
-          Imprimir cupom de teste
+        <button
+          type="button"
+          className="btn-ghost"
+          onClick={() => testPrint()}
+          disabled={!supported}
+        >
+          Testar em {settings.paperWidth} mm
+        </button>
+        <button
+          type="button"
+          className="btn-ghost"
+          onClick={() => testPrint(otherPaperWidth(settings.paperWidth))}
+          disabled={!supported}
+        >
+          Testar em {otherPaperWidth(settings.paperWidth)} mm
         </button>
       </div>
 
@@ -109,6 +129,10 @@ export default function PrinterSettingsCard({ notify }) {
             <option value={58}>58 mm (32 colunas)</option>
             <option value={80}>80 mm (48 colunas)</option>
           </select>
+          <p className="muted small">
+            É só o padrão. No caixa dá para imprimir na outra largura com um
+            toque, e a escolha vira o novo padrão.
+          </p>
         </div>
 
         <div className="field">

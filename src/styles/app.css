@@ -1415,3 +1415,20 @@ button:disabled {
 .small {
   font-size: 14px;
 }
+
+/* Escolha da largura do cupom na hora de imprimir (#65). */
+.print-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.print-actions .big-action {
+  margin: 0;
+}
+
+.btn-ghost.print-alt {
+  min-height: 52px;
+  font-size: 16px;
+}

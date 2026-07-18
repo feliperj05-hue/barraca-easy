@@ -9,7 +9,13 @@ import {
   isSoundEnabled,
   setSoundEnabled,
 } from '../services/soundService.js'
-import { getPrinterSettings, printOrder, isWebUsbSupported } from '../services/printerService.js'
+import {
+  getPrinterSettings,
+  printOrder,
+  printOrderAtWidth,
+  otherPaperWidth,
+  isWebUsbSupported,
+} from '../services/printerService.js'
 
 const HERO_BY_MODE = {
   cashier_production_sync: {
@@ -81,6 +87,9 @@ export default function Cashier({ settings, menu, onCreateOrder, notify }) {
   const [modalOpen, setModalOpen] = useState(false)
   const [confirmed, setConfirmed] = useState(null)
   const [soundOn, setSoundOn] = useState(() => isSoundEnabled())
+  // Config da impressora em estado para os botoes mostrarem a largura ativa
+  // e reagirem quando ela muda na hora da impressao (#65).
+  const [printer, setPrinter] = useState(() => getPrinterSettings())
 
   // Espelha o rascunho no localStorage a cada mudanca. E rascunho mesmo: some
   // quando o pedido e confirmado ou o carrinho e esvaziado.
@@ -155,6 +164,7 @@ export default function Cashier({ settings, menu, onCreateOrder, notify }) {
     // Impressora sem papel, cabo solto ou desligada viram aviso — jamais
     // podem desfazer ou segurar uma venda que o cliente ja pagou.
     const printerCfg = getPrinterSettings()
+    setPrinter(printerCfg)
     if (printerCfg.enabled) {
       printOrder(order, printerCfg).then((result) => {
         if (!result.printed) notify('Cupom não impresso: ' + result.reason)
@@ -162,10 +172,17 @@ export default function Cashier({ settings, menu, onCreateOrder, notify }) {
     }
   }
 
-  async function reprint() {
+  // Reimpressao. Sem argumento sai na largura padrao (um toque); com largura
+  // sai na outra bobina E aquela largura vira o novo padrao (#65), entao a
+  // troca de bobina se resolve no balcao, sem entrar em Configurações.
+  async function reprint(width) {
     if (!confirmed) return
-    const result = await printOrder(confirmed)
-    notify(result.printed ? 'Cupom enviado à impressora.' : result.reason)
+    const result = width
+      ? await printOrderAtWidth(confirmed, width)
+      : await printOrder(confirmed, printer)
+    if (result.settings) setPrinter(result.settings)
+    const used = result.settings ? result.settings.paperWidth : printer.paperWidth
+    notify(result.printed ? 'Cupom enviado à impressora (' + used + ' mm).' : result.reason)
   }
 
   function newSale() {
@@ -183,9 +200,22 @@ export default function Cashier({ settings, menu, onCreateOrder, notify }) {
             {formatBRL(confirmed.total)} • {confirmed.payment} confirmado
           </p>
           {isWebUsbSupported() && (
-            <button type="button" className="btn-secondary big-action" onClick={reprint}>
-              Imprimir cupom
-            </button>
+            <div className="print-actions">
+              <button
+                type="button"
+                className="btn-secondary big-action"
+                onClick={() => reprint()}
+              >
+                Imprimir cupom · {printer.paperWidth} mm
+              </button>
+              <button
+                type="button"
+                className="btn-ghost print-alt"
+                onClick={() => reprint(otherPaperWidth(printer.paperWidth))}
+              >
+                Imprimir em {otherPaperWidth(printer.paperWidth)} mm
+              </button>
+            </div>
           )}
           <button type="button" className="btn-primary big-action" onClick={newSale}>
             Próximo cliente
