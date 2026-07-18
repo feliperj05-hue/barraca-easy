@@ -2030,3 +2030,89 @@ button:disabled {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+
+/* ------------------------------------------------------------------
+   Senha automatica x manual (#79)
+   ------------------------------------------------------------------ */
+
+/* A senha automatica no popup de pagamento. Corpo grande porque o operador
+   vai LER esse numero em voz alta pro cliente, com barulho em volta. */
+.auto-ticket-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 18px 0;
+  padding: 18px;
+  border: 2px solid var(--cor-acao);
+  border-radius: 22px;
+  background: var(--cor-acao-tint);
+}
+
+.auto-ticket-number {
+  font-size: 72px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--cor-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.ticket-mode-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.ticket-mode-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 18px;
+  border: 2px solid var(--cor-borda);
+  border-radius: 20px;
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.ticket-mode-option:hover {
+  border-color: var(--cor-borda-forte);
+}
+
+.ticket-mode-option.selected {
+  border-color: var(--cor-acao);
+  background: var(--cor-acao-tint);
+}
+
+.ticket-mode-option strong {
+  font-size: 20px;
+}
+
+.ticket-mode-sample {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--cor-acao-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-note {
+  margin-top: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto-suave);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.settings-note.warn {
+  background: var(--cor-acao-tint);
+  color: var(--cor-texto);
+}

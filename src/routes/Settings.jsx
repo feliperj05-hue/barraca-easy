@@ -4,6 +4,7 @@ import CloudStatus from '../components/CloudStatus.jsx'
 import PrinterSettingsCard from '../components/PrinterSettingsCard.jsx'
 import BusinessSettingsCard from '../components/BusinessSettingsCard.jsx'
 import PilotCard from '../components/PilotCard.jsx'
+import TicketModeCard from '../components/TicketModeCard.jsx'
 import MenuAdmin from './MenuAdmin.jsx'
 import Members from './Members.jsx'
 import { getModeList, getCurrentMode } from '../services/settingsService.js'
@@ -27,6 +28,8 @@ export default function Settings({
   tenantNome,
   menuProps,
   pilotContext,
+  vendasNoCaixa,
+  onTicketModeChange,
 }) {
   const sections = visibleFor(SETTINGS_SECTIONS, role)
   const [active, setActive] = useState(() => (sections[0] ? sections[0].id : 'mode'))
@@ -97,6 +100,12 @@ export default function Settings({
                   </div>
                 </div>
               </div>
+
+              <TicketModeCard
+                notify={notify}
+                onChange={onTicketModeChange}
+                vendasNoCaixa={vendasNoCaixa}
+              />
 
               <div className="settings-grid">
                 {modes.map((mode) => (

@@ -68,9 +68,19 @@ O Barraca Easy digitaliza o fluxo sem exigir mudança radical da operação.
 
 ## Regras de negócio
 
-- O sistema não gera senha no modo padrão do MVP.
-- A senha é física e prefixada.
-- O caixa informa qual senha foi entregue ao cliente.
+- A senha tem dois modos, escolhidos em Configurações → Modo de operação (#79):
+  - **Manual (padrão):** o sistema não gera senha. A senha é física, prefixada
+    com zeros até 3 dígitos, e o caixa informa qual entregou ao cliente.
+  - **Automática:** o sistema dá o número em ordem, com 4 dígitos a partir de
+    `0001`, e o caixa só lê para o cliente.
+- Nos dois modos a contagem zera a cada fechamento de caixa. Não há contador
+  guardado à parte: a sequência é derivada dos pedidos do dia, e fechar o caixa
+  apaga os pedidos.
+- No modo automático, número de pedido cancelado **não** volta a ser usado no
+  mesmo expediente — o cliente que está com aquele papel na mão não pode ver
+  outro pedido com a senha dele.
+- Trocar de modo de senha é bloqueado enquanto houver venda no caixa aberto:
+  `027` e `0027` são textos diferentes e a trava de duplicidade compara texto.
 - Não permitir duas vendas ativas com a mesma senha no mesmo dia.
 - Pedido só entra na produção depois do pagamento confirmado.
 - Pedidos cancelados não entram no faturamento.

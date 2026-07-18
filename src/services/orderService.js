@@ -16,7 +16,7 @@
 // Os helpers de leitura (getOpenOrders, isTicketTaken) sao puros sobre um array
 // de pedidos ja carregado — servem aos dois backends.
 
-import { normalizeTicket, nextFreeTicket } from '../utils/tickets.js'
+import { normalizeTicket, nextFreeTicket, nextSequentialTicket } from '../utils/tickets.js'
 import { isSameDay } from '../utils/dates.js'
 import { supabase, isSupabaseConfigured } from './supabaseClient.js'
 import { cacheGet, cacheSet, outboxAdd, incidentAdd } from './offlineDb.js'
@@ -400,11 +400,43 @@ export async function fetchOrders(ctx) {
 
 // Cria o pedido apos pagamento confirmado e senha fisica informada.
 // Lanca Error com mensagem amigavel quando alguma regra e violada.
+// Quantas vezes o modo automatico tenta o proximo numero quando dois caixas
+// pedem a mesma senha no mesmo instante. Cinco cobre com folga o cenario real
+// (dois ou tres aparelhos no mesmo balcao); passar disso e sintoma de outra
+// coisa, e a venda tem que subir pro operador em vez de rodar em circulo.
+const AUTO_TICKET_RETRIES = 5
+
 export async function createOrder(ctx, payload) {
   const ticket = validatePayload(payload)
   const data = { ...payload, ticket }
   if (!isCloud(ctx)) return localCreate(data)
-  return cloudCreate(ctx, data)
+
+  // Senha manual: numero duplicado e erro de negocio e vai pro operador — foi
+  // ele quem digitou, e quem resolve e ele.
+  if (!payload.autoTicket) return cloudCreate(ctx, data)
+
+  // Senha automatica (#79): o operador nao escolheu numero nenhum, entao
+  // devolver "a senha 0007 ja foi usada" pra ele seria cobrar por um erro que
+  // nao e dele. Dois aparelhos calculando o proximo numero ao mesmo tempo
+  // chegam no mesmo valor; o indice unico do banco recusa o segundo. Aqui a
+  // gente so pega o proximo e segue — o cliente nem percebe.
+  let tentativa = { ...data }
+  for (let i = 0; i < AUTO_TICKET_RETRIES; i += 1) {
+    try {
+      return await cloudCreate(ctx, tentativa)
+    } catch (err) {
+      if (!isDuplicateTicket(err) || i === AUTO_TICKET_RETRIES - 1) throw err
+      // Reconsulta antes de tentar de novo: outro aparelho pode ter avancado
+      // varios numeros enquanto isto rodava.
+      const atuais = await cloudFetch(ctx)
+      tentativa = {
+        ...tentativa,
+        ticket: nextSequentialTicket(atuais, { bandStart: REASSIGN_BAND_START }),
+      }
+    }
+  }
+  // Inalcancavel: o laco sempre sai por return ou por throw.
+  throw new Error('Nao consegui gerar uma senha livre.')
 }
 
 export async function callOrder(ctx, id) {
