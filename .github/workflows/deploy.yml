@@ -28,6 +28,13 @@ on:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
+    # A action do Firebase publica um "check run" e comenta a URL do preview no
+    # PR. Sem estas permissoes o GITHUB_TOKEN e read-only e o passo morre com
+    # 403 "Resource not accessible by integration" (POST /check-runs).
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     env:
       FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
       FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
