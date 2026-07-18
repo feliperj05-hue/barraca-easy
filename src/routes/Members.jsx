@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { listMembers, addMember } from '../services/authService.js'
+import { vagasRestantes, planoCheio } from '../services/subscriptionService.js'
 import { isSupabaseConfigured } from '../services/supabaseClient.js'
 import PermissionsCard from '../components/PermissionsCard.jsx'
 
@@ -11,7 +12,7 @@ import PermissionsCard from '../components/PermissionsCard.jsx'
 // Virou secao de Configuracoes na #68: sem hero proprio, para nao repetir
 // cabecalho dentro da tela de Configuracoes.
 export default function Members() {
-  const { membership, user } = useAuth()
+  const { membership, user, subscription } = useAuth()
   const tenantId = membership && membership.tenantId
 
   const [members, setMembers] = useState([])
@@ -88,17 +89,40 @@ export default function Members() {
     )
   }
 
+  // Limite do plano. A tela apenas ANTECIPA o recado: quem recusa de verdade
+  // e o banco (add_member + RLS), entao nao ha como contornar pela API.
+  const limite = subscription ? subscription.max_usuarios : null
+  const vagas = vagasRestantes(subscription)
+  const cheio = planoCheio(subscription)
+
   return (
     <>
       <div className="panel settings-panel">
         <div className="panel-title">
           <h2>Membros da barraca</h2>
-          <span className="settings-badge">{members.length} vinculado(s)</span>
+          <span className="settings-badge">
+            {limite == null
+              ? `${members.length} vinculado(s)`
+              : `${members.length} de ${limite} usuário(s)`}
+          </span>
         </div>
         <p className="muted">
           Vincule quem vai operar o caixa. A pessoa precisa criar a conta e
           confirmar o e-mail antes de ser adicionada.
         </p>
+
+        {cheio ? (
+          <p className="settings-note">
+            O plano da barraca permite {limite} usuário(s) e todas as vagas estão em uso. Para
+            incluir mais gente, é preciso mudar de plano. Trocar o papel de quem já está na
+            lista continua funcionando.
+          </p>
+        ) : null}
+        {vagas != null && vagas > 0 ? (
+          <p className="settings-note">
+            {vagas} vaga(s) de usuário disponível(is) no plano.
+          </p>
+        ) : null}
 
         <form onSubmit={handleAdd} className="member-form">
           <label>
@@ -117,7 +141,7 @@ export default function Members() {
               <option value="dono">Dono</option>
             </select>
           </label>
-          <button type="submit" className="btn-primary" disabled={busy}>
+          <button type="submit" className="btn-primary" disabled={busy || cheio}>
             {busy ? 'Adicionando...' : 'Adicionar membro'}
           </button>
         </form>

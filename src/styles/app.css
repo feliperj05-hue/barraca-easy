@@ -2860,3 +2860,57 @@ button:disabled {
   gap: 0.4rem;
   flex-wrap: wrap;
 }
+
+
+/* --- Planos (#94) ----------------------------------------------------- */
+
+.admin-planos {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.75rem 0 1rem;
+}
+
+/* Cada plano e um alvo de clique inteiro, nao so o radiozinho. */
+.admin-plano {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: 0.25rem 0.6rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: 0.7rem;
+  background: var(--cor-superficie);
+  cursor: pointer;
+}
+
+.admin-plano:has(input:checked) {
+  border-color: var(--cor-acao);
+  background: var(--cor-acao-tint);
+}
+
+.admin-plano-atual {
+  border-left: 4px solid var(--cor-status-ok);
+}
+
+.admin-plano-nome {
+  font-weight: 700;
+}
+
+.admin-plano-preco {
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Os textos longos (descricao, aviso de excedente) ocupam a linha inteira
+   embaixo, para o preco nao brigar por espaco com eles. */
+.admin-plano .muted,
+.admin-excedente {
+  grid-column: 1 / -1;
+  font-size: 0.88rem;
+}
+
+.admin-excedente {
+  color: var(--cor-perigo);
+  font-weight: 600;
+}

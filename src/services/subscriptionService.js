@@ -155,13 +155,26 @@ export function avisoDeTeste(sub) {
   return `Seu teste grátis termina em ${dias} dias.`
 }
 
+// Quantos usuarios ainda cabem no plano. `max_usuarios` nulo = plano legado,
+// sem limite — barraca que ja rodava antes da tabela de precos nao pode ser
+// travada por causa de um deploy.
+export function vagasRestantes(sub) {
+  if (!sub || sub.max_usuarios == null) return null
+  return Math.max(sub.max_usuarios - (sub.usuarios_atuais || 0), 0)
+}
+
+export function planoCheio(sub) {
+  const vagas = vagasRestantes(sub)
+  return vagas != null && vagas <= 0
+}
+
 // Cobrancas da propria barraca (o dono ve o que deve). RLS `cobrancas_select`
 // ja limita ao dono do tenant; aqui e so leitura.
 export async function listarMinhasCobrancas(tenantId) {
   if (!isSupabaseConfigured || !tenantId) return []
   const { data, error } = await supabase
     .from('cobrancas')
-    .select('id, competencia, valor, vencimento, status, pago_em, metodo, observacao')
+    .select('id, competencia, valor, vencimento, status, pago_em, metodo, tipo, observacao')
     .eq('tenant_id', tenantId)
     .order('competencia', { ascending: false })
   if (error) throw error

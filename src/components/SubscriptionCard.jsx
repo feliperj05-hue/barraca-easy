@@ -3,6 +3,7 @@ import {
   STATUS_LABELS,
   listarMinhasCobrancas,
   diasRestantesDeTeste,
+  vagasRestantes,
 } from '../services/subscriptionService.js'
 import { formatBRL } from '../utils/money.js'
 import { isSupabaseConfigured } from '../services/supabaseClient.js'
@@ -66,6 +67,7 @@ export default function SubscriptionCard({ subscription }) {
   }
 
   const dias = diasRestantesDeTeste(subscription)
+  const vagas = vagasRestantes(subscription)
 
   return (
     <div className="card assinatura-card">
@@ -82,7 +84,15 @@ export default function SubscriptionCard({ subscription }) {
         </div>
         <div>
           <dt>Plano</dt>
-          <dd>{subscription.plano}</dd>
+          <dd>{subscription.plano_nome || subscription.plano}</dd>
+        </div>
+        <div>
+          <dt>Usuários</dt>
+          <dd>
+            {subscription.max_usuarios == null
+              ? `${subscription.usuarios_atuais ?? 0} (sem limite)`
+              : `${subscription.usuarios_atuais ?? 0} de ${subscription.max_usuarios}`}
+          </dd>
         </div>
         <div>
           <dt>Mensalidade</dt>
@@ -105,6 +115,13 @@ export default function SubscriptionCard({ subscription }) {
         ) : null}
       </dl>
 
+      {vagas === 0 ? (
+        <p className="muted">
+          Todas as vagas de usuário do plano estão em uso. Para incluir mais gente, é preciso
+          mudar de plano.
+        </p>
+      ) : null}
+
       <h4>Histórico de cobrança</h4>
       {erro ? <p className="muted">{erro}</p> : null}
       {!erro && cobrancas.length === 0 ? (
@@ -115,6 +132,7 @@ export default function SubscriptionCard({ subscription }) {
           <thead>
             <tr>
               <th>Mês</th>
+              <th>Tipo</th>
               <th>Valor</th>
               <th>Vencimento</th>
               <th>Situação</th>
@@ -125,6 +143,7 @@ export default function SubscriptionCard({ subscription }) {
             {cobrancas.map((c) => (
               <tr key={c.id}>
                 <td>{competenciaBR(c.competencia)}</td>
+                <td>{c.tipo === 'implantacao' ? 'Implantação' : 'Mensalidade'}</td>
                 <td>{formatBRL(c.valor)}</td>
                 <td>{dataBR(c.vencimento)}</td>
                 <td>
