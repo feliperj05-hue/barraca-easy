@@ -11,9 +11,13 @@
 // vazio — o app continua funcionando, so sem o cache offline.
 
 const DB_NAME = 'barraca-easy-offline'
-const DB_VERSION = 1
+// v2 (#59): entra o store `incidents`. Nada pode sumir em silencio — quando a
+// fila reatribui uma senha ou desiste de uma operacao, o fato fica gravado
+// aqui ate o operador dar ciencia. Sobrevive a reload e a fechar o app.
+const DB_VERSION = 2
 const CACHE_STORE = 'cache'
 const OUTBOX_STORE = 'outbox'
+const INCIDENT_STORE = 'incidents'
 
 let dbPromise = null
 
@@ -39,6 +43,9 @@ function openDb() {
       }
       if (!db.objectStoreNames.contains(OUTBOX_STORE)) {
         db.createObjectStore(OUTBOX_STORE, { keyPath: 'seq', autoIncrement: true })
+      }
+      if (!db.objectStoreNames.contains(INCIDENT_STORE)) {
+        db.createObjectStore(INCIDENT_STORE, { keyPath: 'seq', autoIncrement: true })
       }
     }
     req.onsuccess = () => resolve(req.result)
@@ -129,4 +136,43 @@ export async function outboxUpdate(op) {
 export async function outboxCount() {
   const items = await outboxAll()
   return items.length
+}
+
+// ----- Incidentes de sincronizacao (#59) -----
+//
+// Registro duravel do que a fila resolveu sozinha ou nao conseguiu resolver.
+// A UI le daqui e so apaga quando o operador confirma que viu. Se o app for
+// fechado antes disso, o aviso continua la na proxima abertura.
+
+export async function incidentAdd(incident) {
+  const db = await openDb()
+  if (!db) return null
+  try {
+    return await asPromise(
+      tx(db, INCIDENT_STORE, 'readwrite').add({ ...incident, ts: Date.now() }),
+    )
+  } catch {
+    return null
+  }
+}
+
+export async function incidentAll() {
+  const db = await openDb()
+  if (!db) return []
+  try {
+    const all = await asPromise(tx(db, INCIDENT_STORE, 'readonly').getAll())
+    return (all || []).sort((a, b) => a.seq - b.seq)
+  } catch {
+    return []
+  }
+}
+
+export async function incidentDelete(seq) {
+  const db = await openDb()
+  if (!db) return
+  try {
+    await asPromise(tx(db, INCIDENT_STORE, 'readwrite').delete(seq))
+  } catch {
+    // ignore
+  }
 }

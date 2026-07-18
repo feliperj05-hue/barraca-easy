@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Layout from './components/Layout.jsx'
 import Toast from './components/Toast.jsx'
+import SyncAlerts from './components/SyncAlerts.jsx'
 import Cashier from './routes/Cashier.jsx'
 import Production from './routes/Production.jsx'
 import Closing from './routes/Closing.jsx'
@@ -436,6 +437,7 @@ export default function App() {
         />
       )}
       <Toast message={toast} />
+      <SyncAlerts />
     </Layout>
   )
 }
