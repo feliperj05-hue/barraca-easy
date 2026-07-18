@@ -1432,3 +1432,260 @@ button:disabled {
   min-height: 52px;
   font-size: 16px;
 }
+
+/* ============================================================
+   Configuracoes reorganizadas (issue #68)
+   ============================================================
+   Alvo: tablet no balcao, dedo grande, as vezes molhado. Todo alvo de toque
+   aqui tem no minimo 48px de altura. */
+
+/* Engrenagem do cabecalho ---------------------------------- */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.icon-btn:active {
+  transform: scale(0.94);
+}
+
+.settings-gear.active {
+  background: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+/* A engrenagem gira devagar ao passar o dedo/mouse: e a dica visual de que
+   aquilo ali e "ajuste", sem precisar de rotulo escrito. */
+.settings-gear svg {
+  transition: transform 0.4s ease;
+}
+
+.settings-gear:hover svg {
+  transform: rotate(45deg);
+}
+
+/* Layout da tela de Configuracoes -------------------------- */
+.settings-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: sticky;
+  top: 12px;
+}
+
+.settings-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 62px;
+  padding: 10px 14px;
+  border: 1px solid #e2e6ee;
+  border-radius: 14px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.settings-nav-btn:hover {
+  border-color: #b9c2d4;
+}
+
+.settings-nav-btn.active {
+  border-color: #1f7a3f;
+  background: #eaf6ee;
+}
+
+.settings-nav-icon {
+  font-size: 24px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.settings-nav-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settings-nav-text strong {
+  font-size: 15px;
+}
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Paineis e campos ----------------------------------------- */
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef1f6;
+  color: #56617a;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.settings-badge.warn {
+  background: #fdf0d5;
+  color: #8a5a00;
+}
+
+.settings-grid-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.field-wide {
+  grid-column: 1 / -1;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.settings-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid #c9d2e2;
+  background: #f7f9fc;
+  border-radius: 0 8px 8px 0;
+  color: #56617a;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Tabela de permissoes ------------------------------------- */
+.role-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.role-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.perm-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e2e6ee;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.perm-row {
+  display: grid;
+  grid-template-columns: 1fr 84px 84px;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef1f6;
+  font-size: 14px;
+}
+
+.perm-row:last-child {
+  border-bottom: none;
+}
+
+.perm-head {
+  background: #f7f9fc;
+  font-weight: 700;
+  font-size: 13px;
+  color: #56617a;
+}
+
+.perm-row span:nth-child(2),
+.perm-row span:nth-child(3) {
+  text-align: center;
+}
+
+.perm-yes {
+  color: #1f7a3f;
+  font-weight: 700;
+}
+
+.perm-no {
+  color: #b6bdcc;
+}
+
+/* Cardapio embutido em Configuracoes ----------------------- */
+.menu-admin.embedded {
+  padding: 16px;
+  border: 1px solid #e2e6ee;
+  border-radius: 16px;
+  background: #fff;
+}
+
+/* Retrato / telas estreitas -------------------------------- */
+@media (max-width: 900px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* A coluna vira uma fileira que rola de lado: no retrato, empilhar 5 botoes
+     grandes empurraria o conteudo todo pra fora da tela. */
+  .settings-nav {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .settings-nav-btn {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 118px;
+    text-align: center;
+  }
+
+  /* A dica longa some no modo compacto; o rotulo basta. */
+  .settings-nav-text .small {
+    display: none;
+  }
+
+  .perm-row {
+    grid-template-columns: 1fr 60px 60px;
+  }
+}
