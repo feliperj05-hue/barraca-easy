@@ -1898,16 +1898,11 @@ button:disabled {
 
 
 /* ------------------------------------------------------------------
-   Diario do piloto (#77)
-   O botao 📣 mora no cabecalho, do lado da engrenagem. As opcoes sao
-   alvos grandes de proposito: quem vai tocar nelas esta com a mao
-   ocupada e a fila andando.
+   Diario do piloto (#77) + Fale com o desenvolvedor (#85)
+   A entrada saiu do cabecalho e virou uma linha discreta no rodape.
+   Os alvos dentro do dialogo continuam grandes de proposito: quem vai
+   tocar neles esta com a mao ocupada e a fila andando.
    ------------------------------------------------------------------ */
-
-.pilot-note-btn {
-  font-size: 22px;
-  line-height: 1;
-}
 
 .pilot-note-modal {
   width: min(620px, 100%);
@@ -2389,5 +2384,139 @@ button:disabled {
 
   .auto-ticket-number {
     font-size: 44px;
+  }
+}
+
+
+/* ------------------------------------------------------------------
+   Fale com o desenvolvedor (#85)
+
+   O ponto de entrada e de propaganda ZERO: texto pequeno, cor apagada,
+   sem caixa, sem icone, no fim da pagina. A regra e simples — quem esta
+   no balcao vendendo nao pode esbarrar nisso; quem quer falar comigo
+   acha em dois segundos porque esta sempre no mesmo canto, em todas as
+   telas.
+   ------------------------------------------------------------------ */
+.app-footer {
+  display: flex;
+  justify-content: center;
+  padding: 8px 16px 20px;
+}
+
+.dev-feedback-link {
+  border: 0;
+  background: none;
+  color: var(--cor-texto-suave);
+  font-size: 13px;
+  font-weight: 650;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  opacity: 0.75;
+}
+
+.dev-feedback-link:hover {
+  opacity: 1;
+  background: var(--cor-superficie-2);
+}
+
+.dev-feedback-link:focus-visible {
+  outline: 3px solid var(--cor-acao);
+  outline-offset: 2px;
+  opacity: 1;
+}
+
+/* O dialogo herda tudo do `.modal`, inclusive o teto de altura e o rodape
+   grudado do #82 — entao no celular o botao Enviar tambem nao foge da tela. */
+.dev-feedback-modal {
+  text-align: left;
+}
+
+.dev-feedback-modal h2,
+.dev-feedback-modal > p {
+  text-align: center;
+}
+
+.dev-feedback-tipos {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.dev-feedback-tipo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  text-align: left;
+  min-height: 60px;
+  padding: 12px 16px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 14px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.dev-feedback-tipo:hover {
+  border-color: var(--cor-borda-forte);
+}
+
+/* Selecionado com borda e fundo, nao so com cor: quem enxerga mal ou esta
+   com a tela no sol precisa ver a diferenca de forma, nao de tom. */
+.dev-feedback-tipo.selecionado {
+  border-color: var(--cor-acao);
+  border-width: 2px;
+  background: var(--cor-acao-tint);
+  padding: 11px 15px;
+}
+
+.dev-feedback-tipo.selecionado strong {
+  color: var(--cor-acao-texto);
+}
+
+.dev-feedback-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dev-feedback-campo textarea {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+  font-size: 16px; /* abaixo de 16px o iOS da zoom sozinho ao focar */
+  padding: 12px 14px;
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: 14px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+}
+
+.dev-feedback-campo textarea:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dev-feedback-nota {
+  margin-top: 10px;
+}
+
+/* No celular o dialogo ja esta apertado (#82): o assunto vira uma linha so. */
+@media (max-height: 740px) {
+  .dev-feedback-tipo {
+    min-height: 52px;
+    padding: 9px 14px;
+  }
+
+  .dev-feedback-tipo.selecionado {
+    padding: 8px 13px;
+  }
+
+  .dev-feedback-campo textarea {
+    padding: 9px 12px;
   }
 }
