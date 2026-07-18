@@ -1,3 +1,5 @@
+import ConnectionStatus from './ConnectionStatus.jsx'
+
 export default function Layout({
   screens,
   current,
@@ -20,6 +22,7 @@ export default function Layout({
             </p>
           </div>
         </div>
+        <ConnectionStatus />
         <nav className="app-nav">
           {screens.map((s) => (
             <button

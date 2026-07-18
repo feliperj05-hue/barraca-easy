@@ -18,6 +18,8 @@ import {
   clearOrders,
 } from './services/orderService.js'
 import { initSync } from './services/syncQueue.js'
+import { initNetStatus } from './services/netStatus.js'
+import { subscribeOrders } from './services/realtime.js'
 import { getSettings, selectMode, resetSettings } from './services/settingsService.js'
 import {
   fetchMenu,
@@ -167,6 +169,11 @@ export default function App() {
 
     timer = setInterval(refresh, ORDERS_REFRESH_MS)
 
+    // Realtime por CIMA do polling, nunca no lugar dele: o servidor empurra a
+    // mudanca e a fila da producao atualiza quase na hora. Se o websocket cair
+    // calado (praia, sinal oscilando), o polling acima continua cobrindo.
+    const unsubscribe = subscribeOrders(tenantCtx.tenantId, refresh)
+
     // Voltou pro primeiro plano ou a conexao voltou: atualiza na hora, sem
     // esperar a proxima volta do relogio.
     const onVisible = () => {
@@ -179,6 +186,7 @@ export default function App() {
     return () => {
       active = false
       clearInterval(timer)
+      unsubscribe()
       document.removeEventListener('visibilitychange', onVisible)
       window.removeEventListener('online', refresh)
       window.removeEventListener('focus', refresh)
@@ -189,6 +197,7 @@ export default function App() {
   // os pedidos quando a outbox sobe ao reconectar.
   useEffect(() => {
     initSync()
+    initNetStatus()
   }, [])
 
   useEffect(() => {
