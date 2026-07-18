@@ -21,7 +21,7 @@ import { isSameDay } from '../utils/dates.js'
 import { supabase, isSupabaseConfigured } from './supabaseClient.js'
 import { cacheGet, cacheSet, outboxAdd, incidentAdd } from './offlineDb.js'
 import { reportNetResult } from './netStatus.js'
-import { registerHandler, isOfflineError } from './syncQueue.js'
+import { registerHandler, isDeferrableError } from './syncQueue.js'
 
 const STORAGE_KEY = 'barracaEasyManualTicketState'
 
@@ -232,7 +232,7 @@ async function cloudFetch(ctx) {
     await cacheSet(ordersKey(ctx.tenantId), orders) // atualiza o cache offline
     return orders
   } catch (err) {
-    if (!isOfflineError(err)) throw err
+    if (!isDeferrableError(err)) throw err
     reportNetResult(false)
     // offline: le do ultimo estado bom conhecido
     return (await cacheGet(ordersKey(ctx.tenantId))) || []
@@ -270,8 +270,9 @@ async function cloudCreate(ctx, payload) {
     await cacheAppend(ctx.tenantId, order)
     return order
   } catch (err) {
-    // Erros de negocio (senha duplicada etc.) sobem para o operador.
-    if (!isOfflineError(err)) throw err
+    // Erros de negocio (senha duplicada etc.) sobem para o operador. Rede caida
+    // e credencial vencida (#75) nao sao negocio: viram fila, nao erro na tela.
+    if (!isDeferrableError(err)) throw err
     reportNetResult(false)
     // Offline: valida duplicidade contra o cache local e enfileira otimista.
     const cached = (await cacheGet(ordersKey(ctx.tenantId))) || []
@@ -305,7 +306,7 @@ async function cloudUpdateStatus(ctx, id, opType) {
     await cloudStatusRaw(ctx.tenantId, id, opType)
     return cloudFetch(ctx)
   } catch (err) {
-    if (!isOfflineError(err)) throw err
+    if (!isDeferrableError(err)) throw err
     // Offline: aplica a mudanca no cache e enfileira para subir depois.
     await cachePatchStatus(ctx.tenantId, id, cfg.status, cfg.localTs)
     await outboxAdd({ type: opType, tenantId: ctx.tenantId, orderId: id })
