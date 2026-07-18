@@ -37,46 +37,46 @@ export const SETTINGS_SCREEN = { id: 'settings', label: 'Configurações', roles
 export const ALL_SCREENS = [...NAV_SCREENS, SETTINGS_SCREEN]
 
 // Secoes da tela de Configuracoes, na ordem em que aparecem.
+//
+// Sem `icon` de proposito (#83): cada secao carregava um emoji, e emoji nao e
+// icone — muda de desenho a cada sistema, briga com a tipografia e nao ajuda
+// ninguem a achar nada. O menu e curto e os rotulos sao claros; texto basta.
+// Icone de verdade so entra aqui se um dia existir um jogo de SVG no design
+// (hoje o unico e a engrenagem do cabecalho).
 export const SETTINGS_SECTIONS = [
   {
     id: 'business',
     label: 'Dados da barraca',
-    icon: '🏪',
     hint: 'Nome, contato e o que sai no cupom',
     roles: ['dono'],
   },
   {
     id: 'menu',
     label: 'Cardápio',
-    icon: '🍽️',
     hint: 'Itens, preços e o que aparece no caixa',
     roles: ['dono'],
   },
   {
     id: 'members',
     label: 'Membros e permissões',
-    icon: '👥',
     hint: 'Quem opera a barraca e o que cada um pode',
     roles: ['dono'],
   },
   {
     id: 'mode',
     label: 'Modo de operação',
-    icon: '⚙️',
     hint: 'Como a barraca trabalha no dia a dia',
     roles: ['dono'],
   },
   {
     id: 'piloto',
     label: 'Piloto',
-    icon: '📣',
     hint: 'Anotações do dia e relatório pra enviar',
     roles: ['dono'],
   },
   {
     id: 'printing',
     label: 'Impressão',
-    icon: '🧾',
     hint: 'Impressora térmica e layout do cupom',
     roles: ['dono'],
   },
