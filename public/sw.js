@@ -29,6 +29,10 @@ const SHELL_URLS = [
   './apple-touch-icon.png',
 ]
 
+// NAO chamamos skipWaiting() aqui de proposito (#56). Se o SW novo assumisse
+// sozinho, a aba seguiria rodando o JS antigo contra um cache novo — e a
+// pagina precisaria recarregar numa hora imprevisivel, possivelmente no meio
+// de um pedido. Quem manda trocar e o operador, pelo aviso na tela.
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
@@ -41,8 +45,7 @@ self.addEventListener('install', (event) => {
             cache.add(new Request(url, { cache: 'reload' })).catch(() => null),
           ),
         ),
-      )
-      .then(() => self.skipWaiting()),
+      ),
   )
 })
 

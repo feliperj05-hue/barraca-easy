@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { AuthProvider } from './auth/AuthContext.jsx'
 import Root from './Root.jsx'
+import UpdateBanner from './components/UpdateBanner.jsx'
 import { registerServiceWorker } from './services/pwa.js'
 import './styles/app.css'
 
@@ -9,6 +10,7 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
       <Root />
+      <UpdateBanner />
     </AuthProvider>
   </StrictMode>,
 )
