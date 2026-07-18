@@ -1251,3 +1251,32 @@ button:disabled {
   font-size: 20px;
   border-radius: 18px;
 }
+
+/* Aviso de versao nova (#56) — informa sem atrapalhar a venda */
+.update-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px 12px 20px;
+  border-radius: 20px;
+  background: var(--text);
+  color: #fff;
+  box-shadow: var(--shadow);
+  z-index: 90; /* abaixo do aviso de sync (#59), que e mais urgente */
+  max-width: calc(100% - 24px);
+}
+
+.update-banner-text {
+  font-weight: 800;
+}
+
+.update-banner-btn {
+  padding: 10px 16px;
+  border-radius: 14px;
+  font-size: 16px;
+  white-space: nowrap;
+}
