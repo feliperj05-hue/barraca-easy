@@ -3,6 +3,7 @@ import Layout from './components/Layout.jsx'
 import Toast from './components/Toast.jsx'
 import SyncAlerts from './components/SyncAlerts.jsx'
 import DevFeedbackButton from './components/DevFeedbackButton.jsx'
+import PrivacyDialog from './components/PrivacyDialog.jsx'
 import Cashier from './routes/Cashier.jsx'
 import Production from './routes/Production.jsx'
 import Closing from './routes/Closing.jsx'
@@ -460,7 +461,10 @@ export default function App() {
       onLogout={session ? signOut : null}
       onOpenSettings={canOpenSettings ? () => setScreen('settings') : null}
       rodape={
-        <DevFeedbackButton tela={screenLabel} contexto={pilotContext} notify={notify} />
+        <>
+          <DevFeedbackButton tela={screenLabel} contexto={pilotContext} notify={notify} />
+          <PrivacyDialog />
+        </>
       }
     >
       {currentScreen === 'cashier' && (

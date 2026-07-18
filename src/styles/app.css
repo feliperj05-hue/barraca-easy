@@ -2400,7 +2400,22 @@ button:disabled {
 .app-footer {
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
   padding: 8px 16px 20px;
+}
+
+/* Separador entre os dois links do rodape.
+   Comecou como `content: '·'` num ::before e ISSO ESTAVA ERRADO: conteudo
+   gerado entra no calculo do nome acessivel, entao o botao passou a se chamar
+   "·Privacidade" — o teste automatizado pegou. Borda e desenho puro: separa
+   igual e nao inventa texto pra ninguem ler. */
+.app-footer > * + * {
+  border-left: 1px solid var(--cor-borda-forte);
+  padding-left: 10px;
+  margin-left: 2px;
+  border-radius: 0;
 }
 
 .dev-feedback-link {
@@ -2519,4 +2534,56 @@ button:disabled {
   .dev-feedback-campo textarea {
     padding: 9px 12px;
   }
+}
+
+/* ------------------------------------------------------------------
+   Politica de privacidade (#87)
+   Texto corrido dentro do modal: alinhado a esquerda (centralizar
+   paragrafo longo e castigo pra quem le) e com o rodape grudado do #82
+   segurando o botao de fechar sempre visivel no celular.
+   ------------------------------------------------------------------ */
+.privacy-modal {
+  text-align: left;
+  width: min(640px, 100%);
+}
+
+.privacy-modal h2,
+.privacy-modal > p {
+  text-align: center;
+}
+
+.privacy-corpo {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--cor-texto);
+}
+
+.privacy-corpo h3 {
+  font-size: 16px;
+  margin: 16px 0 6px;
+}
+
+.privacy-corpo h3:first-child {
+  margin-top: 0;
+}
+
+.privacy-corpo p {
+  text-align: left;
+  font-size: 15px;
+  margin-bottom: 8px;
+  color: var(--cor-texto);
+}
+
+.privacy-corpo ul {
+  margin: 0 0 8px 18px;
+  padding: 0;
+}
+
+.privacy-corpo li {
+  margin-bottom: 6px;
+}
+
+/* Um botao so: nao ha o que decidir aqui, so ler e fechar. */
+.privacy-actions {
+  grid-template-columns: 1fr;
 }
