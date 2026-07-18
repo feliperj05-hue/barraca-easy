@@ -77,6 +77,7 @@ export default function MenuAdmin({
   onUpdateItem,
   onRemoveItem,
   onResetMenu,
+  embedded = false,
 }) {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState(null)
@@ -109,20 +110,29 @@ export default function MenuAdmin({
   }
 
   return (
-    <section>
-      <div className="hero">
-        <div>
+    <section className={embedded ? 'menu-admin embedded' : 'menu-admin'}>
+      {embedded ? (
+        // Dentro de Configuracoes o cabecalho da tela ja existe; repetir o hero
+        // aqui empurraria o cardapio pra baixo da dobra no tablet.
+        <div className="panel-title">
           <h2>Cardápio</h2>
-          <p>
-            Mostre ou oculte itens, ajuste preços e crie novos produtos. Os itens padrão sempre
-            voltam ao restaurar o cardápio.
-          </p>
+          <span className="settings-badge">{visibleCount} visível(is) no caixa</span>
         </div>
-        <div className="hero-card">
-          <span>Itens visíveis no caixa</span>
-          <strong>{visibleCount}</strong>
+      ) : (
+        <div className="hero">
+          <div>
+            <h2>Cardápio</h2>
+            <p>
+              Mostre ou oculte itens, ajuste preços e crie novos produtos. Os itens padrão sempre
+              voltam ao restaurar o cardápio.
+            </p>
+          </div>
+          <div className="hero-card">
+            <span>Itens visíveis no caixa</span>
+            <strong>{visibleCount}</strong>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="menu-toolbar">
         <button type="button" className="btn-primary" onClick={openNew}>

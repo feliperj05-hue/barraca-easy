@@ -5,10 +5,9 @@ import SyncAlerts from './components/SyncAlerts.jsx'
 import Cashier from './routes/Cashier.jsx'
 import Production from './routes/Production.jsx'
 import Closing from './routes/Closing.jsx'
-import MenuAdmin from './routes/MenuAdmin.jsx'
 import Settings from './routes/Settings.jsx'
-import Members from './routes/Members.jsx'
 import { useAuth } from './auth/AuthContext.jsx'
+import { NAV_SCREENS, SETTINGS_SCREEN, canAccess, visibleFor } from './services/permissions.js'
 import {
   fetchOrders,
   createOrder,
@@ -21,6 +20,7 @@ import { initSync } from './services/syncQueue.js'
 import { initNetStatus } from './services/netStatus.js'
 import { subscribeOrders } from './services/realtime.js'
 import { getSettings, selectMode, resetSettings } from './services/settingsService.js'
+import { businessLabel } from './services/businessService.js'
 import {
   fetchMenu,
   ensureSeeded,
@@ -34,30 +34,21 @@ import {
 import { getClosings, fetchClosings, createClosing } from './services/closingsService.js'
 import { downloadClosingReport } from './services/reportService.js'
 
-// Telas e quais papeis podem ve-las. Operador opera o caixa; dono gerencia
-// tudo. Sem papel (modo local sem nuvem) libera tudo.
+// Quem ve o que agora mora em services/permissions.js — a mesma fonte que
+// alimenta a tabela de permissoes mostrada ao dono (#68).
+//
 // De quanto em quanto tempo o aparelho reconfere os pedidos no servidor (#57).
 // 10s: rapido o bastante para a fila da producao, leve o bastante para o plano
 // de dados de uma barraca.
 const ORDERS_REFRESH_MS = 10000
-
-const ALL_SCREENS = [
-  { id: 'cashier', label: 'Caixa', roles: ['dono', 'operador'] },
-  { id: 'production', label: 'Produção', roles: ['dono', 'operador'] },
-  { id: 'closing', label: 'Fechamento', roles: ['dono'] },
-  { id: 'menu', label: 'Cardápio', roles: ['dono'] },
-  { id: 'members', label: 'Membros', roles: ['dono'] },
-  { id: 'settings', label: 'Configurações', roles: ['dono'] },
-]
 
 export default function App() {
   const { role, membership, user, session, signOut } = useAuth()
 
   // role null => modo local (sem nuvem) ou dono; libera tudo exceto quando
   // explicitamente for 'operador'.
-  const visibleScreens = ALL_SCREENS.filter(
-    (s) => role == null || s.roles.includes(role),
-  )
+  const navScreens = visibleFor(NAV_SCREENS, role)
+  const canOpenSettings = canAccess(SETTINGS_SCREEN, role)
 
   const [screen, setScreen] = useState('cashier')
   const [orders, setOrders] = useState([])
@@ -81,8 +72,11 @@ export default function App() {
     setOrders(list)
   }, [])
 
-  // Garante que o operador nunca fique numa tela que nao pode ver.
-  const currentScreen = visibleScreens.some((s) => s.id === screen) ? screen : 'cashier'
+  // Garante que o operador nunca fique numa tela que nao pode ver. Settings
+  // nao esta na barra, entao entra na checagem por fora dela.
+  const screenAllowed =
+    navScreens.some((s) => s.id === screen) || (screen === 'settings' && canOpenSettings)
+  const currentScreen = screenAllowed ? screen : 'cashier'
 
   const notify = useCallback((message) => {
     setToast(message)
@@ -392,15 +386,28 @@ export default function App() {
     [notify],
   )
 
+  // Cardapio virou secao de Configuracoes (#68); os handlers continuam aqui e
+  // descem agrupados, sem mudar nenhuma regra de negocio.
+  const menuProps = {
+    menu,
+    onSetPrice: handleSetPrice,
+    onToggleHidden: handleToggleHidden,
+    onAddItem: handleAddItem,
+    onUpdateItem: handleUpdateItem,
+    onRemoveItem: handleRemoveItem,
+    onResetMenu: handleResetMenu,
+  }
+
   return (
     <Layout
-      screens={visibleScreens}
+      screens={navScreens}
       current={currentScreen}
       onNavigate={setScreen}
       userLabel={(user && user.email) || null}
-      tenantLabel={(membership && membership.tenantNome) || null}
+      tenantLabel={businessLabel((membership && membership.tenantNome) || null)}
       role={role}
       onLogout={session ? signOut : null}
+      onOpenSettings={canOpenSettings ? () => setScreen('settings') : null}
     >
       {currentScreen === 'cashier' && (
         <Cashier
@@ -426,24 +433,15 @@ export default function App() {
           onDownloadReport={handleDownloadReport}
         />
       )}
-      {currentScreen === 'menu' && (
-        <MenuAdmin
-          menu={menu}
-          onSetPrice={handleSetPrice}
-          onToggleHidden={handleToggleHidden}
-          onAddItem={handleAddItem}
-          onUpdateItem={handleUpdateItem}
-          onRemoveItem={handleRemoveItem}
-          onResetMenu={handleResetMenu}
-        />
-      )}
-      {currentScreen === 'members' && <Members />}
       {currentScreen === 'settings' && (
         <Settings
           settings={settings}
           onSelectMode={handleSelectMode}
           onResetSettings={handleResetSettings}
           notify={notify}
+          role={role}
+          tenantNome={(membership && membership.tenantNome) || null}
+          menuProps={menuProps}
         />
       )}
       <Toast message={toast} />
