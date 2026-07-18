@@ -15,7 +15,8 @@
     "previa": "node scripts/gerar-previa.mjs",
     "sessao-offline": "node scripts/sessao-offline.mjs",
     "diario-piloto": "node scripts/diario-piloto.mjs",
-    "senha-automatica": "node scripts/senha-automatica.mjs"
+    "senha-automatica": "node scripts/senha-automatica.mjs",
+    "teclado": "node scripts/teclado.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",

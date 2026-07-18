@@ -52,7 +52,9 @@ Produção**. Os outros dois modos ainda não estão prontos.
 Engrenagem → **Modo de operação** → painel **Senha do cliente**. Duas opções:
 
 - **Senha manual** (é como vem de fábrica): você entrega o papelzinho e digita
-  o número no app. Três dígitos, tipo `027`.
+  o número no app. Três dígitos, tipo `027`. A digitação usa um teclado
+  numérico do próprio Barraca Easy, com teclas grandes — o teclado do Android
+  não aparece, então o valor do pedido continua na tela enquanto você digita.
 - **Senha automática**: o app dá o número sozinho, em ordem, começando do
   `0001`. Você só lê o número em voz alta para o cliente. Quatro dígitos.
 

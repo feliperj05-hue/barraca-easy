@@ -2116,3 +2116,103 @@ button:disabled {
   background: var(--cor-acao-tint);
   color: var(--cor-texto);
 }
+
+
+/* ------------------------------------------------------------------
+   Teclado numerico do proprio app (#81)
+   O do Android comia metade da tela do tablet e empurrava o total do
+   pedido pra fora da vista. Aqui a altura e fixa e nada pula.
+   ------------------------------------------------------------------ */
+
+.ticket-entry {
+  margin: 16px 0;
+}
+
+.ticket-entry-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--cor-texto-suave);
+  font-size: 17px;
+  font-weight: 650;
+  text-align: center;
+}
+
+/* O numero digitado. Corpo grande porque o operador confere de relance,
+   com o cliente esperando na frente. */
+.ticket-entry-display {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: 2px solid var(--cor-borda-forte);
+  border-radius: 18px;
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto);
+  font-size: 46px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  line-height: 1.25;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  min-height: 68px;
+}
+
+.ticket-entry-display.empty {
+  color: var(--cor-texto-suave);
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 2.6;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* 64px de altura minima: acima do alvo de toque recomendado, porque o dedo
+   aqui esta com pressa e as vezes molhado. */
+.keypad-key {
+  min-height: 64px;
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: 16px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 0.1s ease, transform 0.08s ease;
+  touch-action: manipulation; /* mata o atraso de 300ms do duplo toque */
+  user-select: none;
+}
+
+.keypad-key:hover {
+  background: var(--cor-superficie-2);
+}
+
+.keypad-key:active {
+  background: var(--cor-acao-tint);
+  transform: scale(0.96);
+}
+
+.keypad-key:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.keypad-key:focus-visible {
+  outline: 3px solid var(--cor-acao);
+  outline-offset: 2px;
+}
+
+/* Zero em duas colunas: e a tecla mais usada em senha com zero a esquerda. */
+.keypad-zero {
+  grid-column: span 2;
+}
+
+.keypad-erase {
+  font-size: 26px;
+  background: var(--cor-superficie-2);
+}

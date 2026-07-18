@@ -1,33 +1,35 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { formatBRL } from '../utils/money.js'
+import NumericKeypad from './NumericKeypad.jsx'
 
 // Popup "Aguardando pagamento" (#4). Abre após Confirmar pedido; o caixa só
 // informa a senha física DEPOIS do pagamento confirmado.
 //
 // Duas caras, conforme o modo de senha (#79):
 //
-// - **manual** (padrão): o caixa digita o número do papel que entregou. É o
-//   comportamento de sempre, sem uma vírgula de diferença.
-// - **automática**: o sistema já escolheu o número e mostra ele em corpo
-//   grande. Não há o que digitar — só ler alto e confirmar. O campo some de
-//   propósito: campo editável convida a mexer, e mexer aqui quebra a
-//   sequência.
+// - **manual** (padrão): o caixa informa o número do papel que entregou, no
+//   teclado numérico do próprio app (#81).
+// - **automática**: o sistema já escolheu o número e mostra em corpo grande.
+//   Não há o que digitar — só ler alto e confirmar. O campo some de propósito:
+//   campo editável convida a mexer, e mexer aqui quebra a sequência.
+//
+// Sobre não existir `<input>` no modo manual (#81): o teclado do Android
+// aparece porque um campo de texto recebeu foco. `readonly` costuma segurar,
+// mas depende do fabricante e da versão do IME — e a queixa do Felipe veio de
+// tablet real, não de teoria. Sem campo focável não há teclado do sistema pra
+// aparecer, ponto. O número digitado vive num `aria-live`, então leitor de
+// tela continua narrando cada dígito.
 export default function PaymentModal({ open, total, onClose, onConfirm, autoTicket }) {
   const [ticket, setTicket] = useState('')
-  const inputRef = useRef(null)
   const auto = Boolean(autoTicket)
 
   useEffect(() => {
-    if (open) {
-      setTicket('')
-      if (auto) return undefined
-      const t = setTimeout(() => inputRef.current?.focus(), 80)
-      return () => clearTimeout(t)
-    }
-    return undefined
-  }, [open, auto])
+    if (open) setTicket('')
+  }, [open])
 
   if (!open) return null
+
+  const confirmar = () => onConfirm(auto ? autoTicket : ticket)
 
   return (
     <div className="modal-backdrop show" onClick={onClose}>
@@ -47,21 +49,22 @@ export default function PaymentModal({ open, total, onClose, onConfirm, autoTick
             <span className="muted small">O sistema já reservou. Diga o número ao cliente.</span>
           </div>
         ) : (
-          <div className="field">
-            <label htmlFor="modal-ticket-input">
+          <div className="ticket-entry">
+            <span className="ticket-entry-label" id="ticket-entry-label">
               Número da senha física liberada ao cliente
-            </label>
-            <input
-              id="modal-ticket-input"
-              ref={inputRef}
-              maxLength={6}
-              inputMode="numeric"
-              placeholder="Ex: 027"
+            </span>
+            <output
+              className={'ticket-entry-display' + (ticket ? '' : ' empty')}
+              aria-labelledby="ticket-entry-label"
+              aria-live="polite"
+            >
+              {ticket || 'Digite a senha'}
+            </output>
+            <NumericKeypad
               value={ticket}
-              onChange={(e) => setTicket(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') onConfirm(ticket)
-              }}
+              onChange={setTicket}
+              onConfirm={confirmar}
+              maxLength={6}
             />
           </div>
         )}
@@ -70,11 +73,7 @@ export default function PaymentModal({ open, total, onClose, onConfirm, autoTick
           <button type="button" className="btn-ghost" onClick={onClose}>
             Voltar ao pedido
           </button>
-          <button
-            type="button"
-            className="btn-ok"
-            onClick={() => onConfirm(auto ? autoTicket : ticket)}
-          >
+          <button type="button" className="btn-ok" onClick={confirmar}>
             Pagamento confirmado
           </button>
         </div>
