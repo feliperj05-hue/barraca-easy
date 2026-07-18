@@ -39,7 +39,7 @@ export function isOfflineError(err) {
 
 // Erro de sessao/permissao: a fila sobreviveu a um restart e a autenticacao
 // ainda nao voltou. Nao e permanente — tentamos de novo depois (nao descarta).
-function isAuthError(err) {
+export function isSessionError(err) {
   if (!err) return false
   const code = String(err.code || '')
   const msg = String(err.message || err)
@@ -49,6 +49,20 @@ function isAuthError(err) {
     code === 'PGRST301' ||
     /jwt|not authenticated|unauthor|permission denied|row-level security|forbidden/i.test(msg)
   )
+}
+
+
+// O que NAO deve chegar ao operador como erro de venda: nem falha de rede, nem
+// credencial vencida (#75). Nos dois casos o servidor nao aplicou a operacao
+// por motivo temporario, entao ela vai pra fila e sobe depois — a venda segue.
+//
+// O caso que a `isOfflineError` sozinha nao pega: o sinal volta, mas o token
+// ainda nao renovou (a lib tem cooldown de 60s apos um refresh que falhou).
+// A requisicao sai, chega no servidor e volta **401 / JWT expired**. Isso tem
+// cara de resposta de negocio e nao e: e a mesma falha de transporte de antes,
+// so que com resposta. Sem esta guarda, a venda estourava na tela do operador.
+export function isDeferrableError(err) {
+  return isOfflineError(err) || isSessionError(err)
 }
 
 // Conflito real de senha ja usada no servidor: op impossivel de aplicar.
@@ -83,7 +97,7 @@ export async function flushQueue() {
           await remapPending(ops, result.remap.from, result.remap.to)
         }
       } catch (err) {
-        if (isOfflineError(err) || isAuthError(err)) {
+        if (isOfflineError(err) || isSessionError(err)) {
           break // temporario: mantem a fila e tenta na proxima
         }
         if (isDuplicateConflict(err)) {

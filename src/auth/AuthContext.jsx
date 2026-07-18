@@ -1,11 +1,13 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { supabase, isSupabaseConfigured } from '../services/supabaseClient.js'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react"
+import { supabase, isSupabaseConfigured } from "../services/supabaseClient.js"
 import {
   loadMembership,
   signOut as doSignOut,
   cacheMembership,
   readCachedMembership,
-} from '../services/authService.js'
+  resolveSession,
+  readStoredSession,
+} from "../services/authService.js"
 
 const AuthContext = createContext(null)
 
@@ -14,8 +16,12 @@ const AuthContext = createContext(null)
 // da sessao, resolve o vinculo do usuario (tenant + papel) pela tabela membros.
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
+  // Sessao vencida que nao deu pra renovar por falta de rede (#75). O app
+  // continua operando; so o que depende do servidor fica em espera.
+  const [staleSession, setStaleSession] = useState(false)
   const [membership, setMembership] = useState(null)
   const [loading, setLoading] = useState(true)
+  const resolving = useRef(false)
 
   // Resolve o vinculo do usuario. A distincao que importa (#73):
   //
@@ -42,6 +48,26 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  // Espelho do estado degradado: os listeners de "voltou o sinal" leem daqui
+  // para o efeito nao precisar reassinar a cada mudanca de estado.
+  const staleRef = useRef(false)
+  staleRef.current = staleSession
+
+  // Resolve a sessao pelo caminho tolerante a falha de transporte (#75).
+  const syncSession = useCallback(async () => {
+    if (resolving.current) return
+    resolving.current = true
+    try {
+      const { session: s, stale } = await resolveSession()
+      setSession(s)
+      setStaleSession(stale)
+      if (s) await refreshMembership(s.user.id)
+      else setMembership(null)
+    } finally {
+      resolving.current = false
+    }
+  }, [refreshMembership])
+
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setLoading(false)
@@ -49,29 +75,57 @@ export function AuthProvider({ children }) {
     }
     let active = true
 
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!active) return
-      setSession(data.session)
-      if (data.session) await refreshMembership(data.session.user.id)
-      setLoading(false)
+    syncSession().then(() => {
+      if (active) setLoading(false)
     })
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (_event, s) => {
       if (!active) return
-      setSession(s)
-      if (s) await refreshMembership(s.user.id)
-      else setMembership(null)
+      if (s) {
+        // Renovou (ou logou): saimos do modo degradado.
+        setSession(s)
+        setStaleSession(false)
+        await refreshMembership(s.user.id)
+        return
+      }
+      // Sessao nula vinda da lib. So aceitamos como "deslogado" se a
+      // credencial tambem sumiu do storage — que e o que a lib faz num
+      // signOut/refresh recusado de verdade. Se ela continua la, isso foi
+      // falha de transporte e nao pode derrubar o operador (#75).
+      const stored = readStoredSession()
+      if (stored) {
+        setSession(stored)
+        setStaleSession(true)
+        return
+      }
+      setSession(null)
+      setStaleSession(false)
+      setMembership(null)
     })
+
+    // Quando o sinal volta, tenta sair do modo degradado na hora em vez de
+    // esperar o proximo tique de auto-refresh da lib.
+    const retomar = () => {
+      if (staleRef.current) syncSession()
+    }
+    const aoVoltarPraTela = () => {
+      if (document.visibilityState === "visible") retomar()
+    }
+    window.addEventListener("online", retomar)
+    document.addEventListener("visibilitychange", aoVoltarPraTela)
 
     return () => {
       active = false
       sub.subscription.unsubscribe()
+      window.removeEventListener("online", retomar)
+      document.removeEventListener("visibilitychange", aoVoltarPraTela)
     }
-  }, [refreshMembership])
+  }, [refreshMembership, syncSession])
 
   const value = {
     loading,
     session,
+    staleSession,
     user: session ? session.user : null,
     membership,
     role: membership ? membership.papel : null,
@@ -84,6 +138,6 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth deve ser usado dentro de AuthProvider')
+  if (!ctx) throw new Error("useAuth deve ser usado dentro de AuthProvider")
   return ctx
 }

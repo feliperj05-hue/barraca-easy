@@ -12,7 +12,8 @@
     "build:production": "vite build --mode production",
     "contraste": "node scripts/contraste.mjs",
     "portao-offline": "node scripts/portao-offline.mjs",
-    "previa": "node scripts/gerar-previa.mjs"
+    "previa": "node scripts/gerar-previa.mjs",
+    "sessao-offline": "node scripts/sessao-offline.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",

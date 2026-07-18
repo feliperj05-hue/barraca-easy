@@ -44,6 +44,81 @@ export async function resendConfirmation(email) {
   if (error) throw error
 }
 
+// --- Sessao resiliente (#75) ---
+//
+// O degrau anterior ao vinculo do #73: a **sessao**. O access token do Supabase
+// dura ~1h. Passado esse tempo com o tablet sem sinal, o supabase-js tenta
+// renovar, o `fetch` estoura e o `getSession()` devolve `session: null` com um
+// `AuthRetryableFetchError`. O portao lia esse `null` como "nao esta logado" e
+// jogava o operador na tela de Login **sem internet para logar**. Barraca parada
+// no meio do expediente.
+//
+// Comprovado empiricamente com a lib real (ver `npm run sessao-offline`):
+// token vencido + rede morta -> `session: null` + `AuthRetryableFetchError`,
+// mas **a credencial continua no localStorage**. A propria lib so apaga a
+// sessao quando o erro NAO e de transporte (`_removeSession` em
+// `_callRefreshToken` roda so no ramo nao-retryable). Ou seja: o dado pra
+// continuar vendendo esta la; quem jogava fora era o nosso portao.
+//
+// Mesma regra da #73: **falha de transporte nao e resposta de negocio.**
+// "Nao consegui renovar" nao e "sessao invalida".
+
+// Erro de transporte: a resposta nao chegou. Nao confundir com o servidor
+// dizendo "nao". `AuthRetryableFetchError` e o que a lib levanta quando o
+// `fetch` do refresh falha; o resto cobre variacoes de mensagem e o caso do
+// aparelho declaradamente offline.
+export function isTransportFailure(err) {
+  if (typeof navigator !== 'undefined' && navigator && navigator.onLine === false) {
+    return true
+  }
+  if (!err) return false
+  if (err.name === 'AuthRetryableFetchError') return true
+  const msg = String(err.message || err)
+  return /Failed to fetch|NetworkError|network|Load failed|ERR_INTERNET|timeout/i.test(msg)
+}
+
+// Le a sessao crua que o supabase-js persiste. A chave e derivada da URL do
+// projeto pela propria lib e exposta em `client.storageKey` — usamos ela em vez
+// de remontar a string, pra nao quebrar se a lib mudar o formato.
+export function readStoredSession(client) {
+  const c = client || supabase
+  if (!c || !c.storageKey) return null
+  try {
+    const raw = localStorage.getItem(c.storageKey)
+    if (!raw) return null
+    const s = JSON.parse(raw)
+    // So serve como credencial de trabalho se tiver o minimo: quem e o usuario
+    // e com que token tentar renovar quando o sinal voltar.
+    if (!s || !s.access_token || !s.refresh_token || !s.user || !s.user.id) return null
+    return s
+  } catch {
+    return null
+  }
+}
+
+// Resolve a sessao para o portao de auth.
+//
+//   { session, stale }
+//
+// - `stale: false` -> resposta confiavel (sessao viva, ou ausencia real dela).
+// - `stale: true`  -> o token venceu e nao deu pra renovar por falta de rede;
+//   seguimos com a ultima credencial conhecida em modo degradado. As escritas
+//   vao pra fila offline e sobem quando a rede (e o token) voltarem.
+export async function resolveSession(client) {
+  const c = client || supabase
+  if (!c) return { session: null, stale: false }
+  const { data, error } = await c.auth.getSession()
+  if (data && data.session) return { session: data.session, stale: false }
+  // Sem sessao E sem resposta: a lib nao pode ter dito "voce nao esta logado",
+  // porque ela nao falou com ninguem. Cai na credencial guardada, se houver.
+  if (isTransportFailure(error)) {
+    const stored = readStoredSession(c)
+    if (stored) return { session: stored, stale: true }
+  }
+  // Servidor respondeu (ou nunca houve credencial): `null` aqui e verdade.
+  return { session: null, stale: false }
+}
+
 // --- Cache local do vinculo (#73) ---
 //
 // Por que existe: o vinculo (tenant + papel) so vinha da rede e vivia no state
