@@ -1324,3 +1324,94 @@ button:disabled {
   border-left: 2px solid rgba(45, 33, 24, 0.15);
   font-weight: 900;
 }
+
+
+/* --- Impressora termica (#63) --- */
+.printer-panel {
+  margin-top: 24px;
+}
+
+.printer-badge {
+  background: #f1f1f1;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.printer-badge.ok {
+  background: #e6f7ec;
+  color: #1b7a3d;
+}
+
+.printer-warning {
+  background: #fff5e6;
+  border: 1px solid #ffd699;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-weight: 700;
+}
+
+.printer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.printer-toggle,
+.printer-checks label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 17px;
+  font-weight: 700;
+  margin: 12px 0;
+  color: var(--text);
+}
+
+.printer-toggle input,
+.printer-checks input {
+  width: 28px;
+  height: 28px;
+  flex: none;
+}
+
+.printer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0 18px;
+}
+
+.printer-grid select,
+.printer-grid input {
+  width: 100%;
+  border: 2px solid var(--border);
+  border-radius: 18px;
+  padding: 14px;
+  font-size: 20px;
+  background: #fff;
+}
+
+.receipt-preview {
+  background: #fffdf5;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  font-family: ui-monospace, "Courier New", monospace;
+  font-size: 15px;
+  line-height: 1.35;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.receipt-preview.bytes {
+  background: #1f2430;
+  color: #b7f7c8;
+  font-size: 13px;
+}
+
+.small {
+  font-size: 14px;
+}

@@ -443,6 +443,7 @@ export default function App() {
           settings={settings}
           onSelectMode={handleSelectMode}
           onResetSettings={handleResetSettings}
+          notify={notify}
         />
       )}
       <Toast message={toast} />
