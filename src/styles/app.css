@@ -1280,3 +1280,47 @@ button:disabled {
   font-size: 16px;
   white-space: nowrap;
 }
+
+/* Selo de conexao no cabecalho (#59b) */
+.conn-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--soft);
+  font-weight: 800;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.conn-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex: none;
+}
+
+.conn-status[data-state='ok'] .conn-dot {
+  background: #2e9e5b;
+}
+
+.conn-status[data-state='syncing'] .conn-dot {
+  background: var(--primary);
+}
+
+.conn-status[data-state='offline'] {
+  background: #fdeaea;
+  color: var(--danger);
+}
+
+.conn-status[data-state='offline'] .conn-dot {
+  background: var(--danger);
+}
+
+.conn-pending {
+  padding-left: 10px;
+  border-left: 2px solid rgba(45, 33, 24, 0.15);
+  font-weight: 900;
+}

@@ -20,6 +20,7 @@ import { normalizeTicket, nextFreeTicket } from '../utils/tickets.js'
 import { isSameDay } from '../utils/dates.js'
 import { supabase, isSupabaseConfigured } from './supabaseClient.js'
 import { cacheGet, cacheSet, outboxAdd, incidentAdd } from './offlineDb.js'
+import { reportNetResult } from './netStatus.js'
 import { registerHandler, isOfflineError } from './syncQueue.js'
 
 const STORAGE_KEY = 'barracaEasyManualTicketState'
@@ -225,10 +226,14 @@ async function cloudFetchRaw() {
 async function cloudFetch(ctx) {
   try {
     const orders = await cloudFetchRaw(ctx.tenantId)
+    // Chegou resposta do servidor: e a prova de que ha internet de verdade,
+    // nao so wi-fi associado (#59b).
+    reportNetResult(true)
     await cacheSet(ordersKey(ctx.tenantId), orders) // atualiza o cache offline
     return orders
   } catch (err) {
     if (!isOfflineError(err)) throw err
+    reportNetResult(false)
     // offline: le do ultimo estado bom conhecido
     return (await cacheGet(ordersKey(ctx.tenantId))) || []
   }
@@ -261,11 +266,13 @@ async function cloudCreateRaw(tenantId, { items, payment, total, ticket }) {
 async function cloudCreate(ctx, payload) {
   try {
     const order = await cloudCreateRaw(ctx.tenantId, payload)
+    reportNetResult(true)
     await cacheAppend(ctx.tenantId, order)
     return order
   } catch (err) {
     // Erros de negocio (senha duplicada etc.) sobem para o operador.
     if (!isOfflineError(err)) throw err
+    reportNetResult(false)
     // Offline: valida duplicidade contra o cache local e enfileira otimista.
     const cached = (await cacheGet(ordersKey(ctx.tenantId))) || []
     if (isTicketTaken(payload.ticket, cached)) {

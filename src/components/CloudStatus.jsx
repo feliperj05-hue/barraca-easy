@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react'
 import { isSupabaseConfigured, checkSupabaseConnection } from '../services/supabaseClient.js'
+import { subscribeNetStatus } from '../services/netStatus.js'
 
-// Indicador simples do backend de nuvem (Supabase). Alem de informar o status,
-// serve para o cliente Supabase ser efetivamente referenciado por codigo
-// alcancavel — sem isso o modulo seria removido por tree-shaking e as
-// credenciais nao entrariam no bundle publicado (ver #27).
+// Diagnostico da nuvem na tela de Configuracoes.
+//
+// Antes ele checava a conexao UMA vez, ao montar, e nunca mais: se o sinal
+// caisse depois, seguia exibindo "conectada" — mentira exatamente na hora em
+// que o operador precisaria da verdade (#59b). Agora a checagem inicial serve
+// so de partida e o estado passa a acompanhar o resultado real das chamadas
+// (netStatus), igual ao selo do cabecalho.
+//
+// Tambem serve para o cliente Supabase ser referenciado por codigo alcancavel
+// — sem isso o modulo sairia no tree-shaking e as credenciais nao entrariam no
+// bundle publicado (ver #27).
 const LABELS = {
   off: 'Nuvem: nao configurada (operando local)',
   checking: 'Nuvem: verificando conexao...',
@@ -24,6 +32,11 @@ export default function CloudStatus() {
     return () => {
       alive = false
     }
+  }, [])
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return
+    return subscribeNetStatus((s) => setStatus(s.online ? 'ok' : 'error'))
   }, [])
 
   return (
