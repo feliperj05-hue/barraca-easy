@@ -16,10 +16,10 @@
 // Os helpers de leitura (getOpenOrders, isTicketTaken) sao puros sobre um array
 // de pedidos ja carregado — servem aos dois backends.
 
-import { normalizeTicket } from '../utils/tickets.js'
+import { normalizeTicket, nextFreeTicket } from '../utils/tickets.js'
 import { isSameDay } from '../utils/dates.js'
 import { supabase, isSupabaseConfigured } from './supabaseClient.js'
-import { cacheGet, cacheSet, outboxAdd } from './offlineDb.js'
+import { cacheGet, cacheSet, outboxAdd, incidentAdd } from './offlineDb.js'
 import { registerHandler, isOfflineError } from './syncQueue.js'
 
 const STORAGE_KEY = 'barracaEasyManualTicketState'
@@ -211,14 +211,20 @@ function optimisticOrder({ items, payment, total, ticket }) {
 
 // ----- Operacoes cruas contra o Supabase (reusadas pelo replay da fila) -----
 
+// Leitura crua do servidor, sem tocar no cache. Usada pelo replay da fila
+// para descobrir quais senhas ja estao ocupadas hoje.
+async function cloudFetchRaw() {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .select(CLOUD_SELECT)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return (data || []).map(mapOrder)
+}
+
 async function cloudFetch(ctx) {
   try {
-    const { data, error } = await supabase
-      .from('pedidos')
-      .select(CLOUD_SELECT)
-      .order('created_at', { ascending: true })
-    if (error) throw error
-    const orders = (data || []).map(mapOrder)
+    const orders = await cloudFetchRaw(ctx.tenantId)
     await cacheSet(ordersKey(ctx.tenantId), orders) // atualiza o cache offline
     return orders
   } catch (err) {
@@ -304,12 +310,71 @@ async function cloudUpdateStatus(ctx, id, opType) {
 // Replay da fila offline (registrado no syncQueue)
 // =====================================================================
 
+// Quantas senhas a mais tentamos quando a original ja foi usada. Cobre com
+// folga uma colisao real (dois aparelhos offline na mesma faixa de senhas).
+const MAX_REASSIGN_TRIES = 25
+
+// Faixa reservada para senha reatribuida (#59). A senha e um papel fisico de
+// bloco sequencial; se a reatribuicao pegasse o menor numero livre, ela cairia
+// num papel que o caixa ainda vai entregar e a colisao voltaria mais tarde.
+// Comecar em 900 mantem a senha reatribuida longe do bloco em uso — o operador
+// avisa o cliente verbalmente ("sua senha agora e a 900").
+const REASSIGN_BAND_START = 900
+
+// Sobe um pedido da fila offline. Se a senha ja foi usada hoje por outro
+// aparelho, NAO descarta a venda: pega uma senha livre e sobe com ela,
+// devolvendo o de-para para o operador avisar o cliente.
+//
+// O cliente esta com a senha antiga na mao, entao quem resolve de verdade e
+// gente — o sistema so garante que a venda nao se perca e que alguem seja
+// avisado.
+async function cloudCreateWithReassign(tenantId, payload) {
+  try {
+    const order = await cloudCreateRaw(tenantId, payload)
+    return { order, reassignedFrom: null }
+  } catch (err) {
+    if (!isDuplicateTicket(err)) throw err
+  }
+
+  const original = normalizeTicket(payload.ticket)
+  let candidate = null
+  for (let i = 0; i < MAX_REASSIGN_TRIES; i += 1) {
+    // Reconsulta a cada volta: outro aparelho pode ter ocupado a senha no meio.
+    const current = await cloudFetchRaw(tenantId)
+    candidate =
+      candidate === null
+        ? nextFreeTicket(current, { start: REASSIGN_BAND_START })
+        : normalizeTicket(String(Number(candidate) + 1))
+    try {
+      const order = await cloudCreateRaw(tenantId, { ...payload, ticket: candidate })
+      return { order, reassignedFrom: original }
+    } catch (err) {
+      if (!isDuplicateTicket(err)) throw err
+      // colidiu de novo (corrida com outro aparelho): tenta a proxima
+    }
+  }
+  throw new Error(
+    'Nao foi possivel encontrar uma senha livre para o pedido da senha ' + original + '.',
+  )
+}
+
 registerHandler('create', async (op) => {
-  const realOrder = await cloudCreateRaw(op.tenantId, op.payload)
+  const { order, reassignedFrom } = await cloudCreateWithReassign(op.tenantId, op.payload)
   // troca o pedido otimista pelo confirmado e devolve o remapeamento de id
   // para as operacoes seguintes na fila (chamar/entregar/cancelar).
-  await cacheReplace(op.tenantId, op.orderId, realOrder)
-  return { remap: { from: op.orderId, to: realOrder.id } }
+  await cacheReplace(op.tenantId, op.orderId, order)
+  if (reassignedFrom && reassignedFrom !== order.ticket) {
+    // Registro duravel: o operador PRECISA ver isso para avisar o cliente que
+    // esta com a senha antiga em maos.
+    await incidentAdd({
+      type: 'ticket-reassigned',
+      tenantId: op.tenantId,
+      from: reassignedFrom,
+      to: order.ticket,
+      total: order.total,
+    })
+  }
+  return { remap: { from: op.orderId, to: order.id } }
 })
 
 registerHandler('call', (op) => cloudStatusRaw(op.tenantId, op.orderId, 'call'))

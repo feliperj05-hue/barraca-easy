@@ -13,7 +13,7 @@
 //   local -> id real do banco); as operacoes seguintes na fila que apontavam
 //   para o id temporario sao reescritas para o id real.
 
-import { outboxAll, outboxDelete, outboxUpdate } from './offlineDb.js'
+import { outboxAll, outboxDelete, outboxUpdate, outboxCount, incidentAdd } from './offlineDb.js'
 
 const MAX_ATTEMPTS = 5
 
@@ -87,13 +87,19 @@ export async function flushQueue() {
           break // temporario: mantem a fila e tenta na proxima
         }
         if (isDuplicateConflict(err)) {
-          await outboxDelete(op.seq) // servidor recusou de vez: descarta e segue
+          // O handler de `create` ja tenta reatribuir a senha (#59). Chegar
+          // aqui significa que nem isso resolveu — entao a venda sai da fila,
+          // mas NUNCA em silencio: fica registrada para o operador ver.
+          await recordFailure(op, err)
+          await outboxDelete(op.seq)
           synced = true
           continue
         }
         // erro persistente inesperado: conta a tentativa e descarta no limite
         op.attempts = (op.attempts || 0) + 1
         if (op.attempts >= MAX_ATTEMPTS) {
+          // Desistir e aceitavel; desistir calado, nao. Registra antes de sair.
+          await recordFailure(op, err)
           await outboxDelete(op.seq)
           synced = true
           continue
@@ -122,7 +128,27 @@ async function remapPending(ops, from, to) {
   }
 }
 
-// Liga o disparo automatico: ao voltar a conexao e no boot do app.
+// Registra que uma operacao nao pode ser aplicada. Vale para venda (create) e
+// para transicao de status. O `payload` do create guarda senha e total, que e
+// o que o operador precisa para achar o pedido no mundo real.
+async function recordFailure(op, err) {
+  await incidentAdd({
+    type: 'op-failed',
+    opType: op.type,
+    tenantId: op.tenantId,
+    ticket: (op.payload && op.payload.ticket) || null,
+    total: (op.payload && op.payload.total) || null,
+    reason: String((err && err.message) || err || 'erro desconhecido'),
+  })
+}
+
+// De quanto em quanto tempo insistimos na fila enquanto houver pendencia.
+// O evento `online` do navegador nao basta: em wi-fi de quiosque o aparelho
+// fica "conectado" sem internet, o evento nunca dispara de novo e a fila
+// ficaria parada ate reabrir o app — com venda dentro dela.
+const RETRY_INTERVAL_MS = 30000
+
+// Liga o disparo automatico: ao voltar a conexao, no boot e por tempo.
 let initialized = false
 export function initSync() {
   if (initialized || typeof window === 'undefined') return
@@ -130,6 +156,10 @@ export function initSync() {
   window.addEventListener('online', () => {
     flushQueue()
   })
+  setInterval(async () => {
+    // So acorda a rede se realmente houver o que subir.
+    if ((await outboxCount()) > 0) flushQueue()
+  }, RETRY_INTERVAL_MS)
   // tenta drenar o que tiver ficado de sessoes anteriores
   flushQueue()
 }
