@@ -1,6 +1,11 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient.js'
-import { loadMembership, signOut as doSignOut } from '../services/authService.js'
+import {
+  loadMembership,
+  signOut as doSignOut,
+  cacheMembership,
+  readCachedMembership,
+} from '../services/authService.js'
 
 const AuthContext = createContext(null)
 
@@ -12,18 +17,28 @@ export function AuthProvider({ children }) {
   const [membership, setMembership] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const refreshMembership = useCallback(async () => {
+  // Resolve o vinculo do usuario. A distincao que importa (#73):
+  //
+  // - servidor respondeu -> essa e a verdade, inclusive o `null` de "ainda nao
+  //   tem barraca"; atualiza o cache local (e apaga se nao ha mais vinculo).
+  // - servidor NAO respondeu (sem sinal na praia) -> isso nao e resposta, e
+  //   ausencia dela. Cai no ultimo vinculo conhecido para o app continuar
+  //   abrindo no Caixa, com o cache de pedidos e a fila de sync no lugar.
+  const refreshMembership = useCallback(async (currentUserId) => {
     if (!isSupabaseConfigured) {
       setMembership(null)
       return null
     }
+    const userId = currentUserId || null
     try {
       const m = await loadMembership()
+      cacheMembership(userId, m)
       setMembership(m)
       return m
     } catch {
-      setMembership(null)
-      return null
+      const cached = readCachedMembership(userId)
+      setMembership(cached)
+      return cached
     }
   }, [])
 
@@ -37,14 +52,14 @@ export function AuthProvider({ children }) {
     supabase.auth.getSession().then(async ({ data }) => {
       if (!active) return
       setSession(data.session)
-      if (data.session) await refreshMembership()
+      if (data.session) await refreshMembership(data.session.user.id)
       setLoading(false)
     })
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (_event, s) => {
       if (!active) return
       setSession(s)
-      if (s) await refreshMembership()
+      if (s) await refreshMembership(s.user.id)
       else setMembership(null)
     })
 

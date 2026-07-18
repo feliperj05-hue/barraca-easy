@@ -21,7 +21,7 @@ export default function Onboarding() {
     setBusy(true)
     try {
       await createTenantAsOwner(nome)
-      await refreshMembership()
+      await refreshMembership(user && user.id)
     } catch (err) {
       setError((err && err.message) || String(err))
       setBusy(false)
