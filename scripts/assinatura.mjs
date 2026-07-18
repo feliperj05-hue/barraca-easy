@@ -30,6 +30,8 @@ const {
   motivoBloqueio,
   avisoDeTeste,
   diasRestantesDeTeste,
+  vagasRestantes,
+  planoCheio,
   cacheSubscription,
   readCachedSubscription,
   clearSubscriptionCache,
@@ -148,6 +150,30 @@ ok(
   diasRestantesDeTeste(sub({ status_assinatura: 'teste', dias_restantes: 3 })) === 3,
   'quando o banco ja calculou, usa o numero do banco',
 )
+
+console.log('\n7. Limite de usuarios do plano')
+const comPlano = (max, usados) =>
+  sub({ status_assinatura: 'ativa', max_usuarios: max, usuarios_atuais: usados })
+
+ok(vagasRestantes(comPlano(5, 2)) === 3, 'plano de 5 com 2 usados tem 3 vagas')
+ok(vagasRestantes(comPlano(1, 1)) === 0, 'plano de 1 usuario cheio tem 0 vaga')
+ok(!planoCheio(comPlano(2, 1)), 'plano de 2 com 1 usado ainda cabe gente')
+ok(planoCheio(comPlano(2, 2)), 'plano de 2 com 2 usados esta cheio')
+
+ok(
+  vagasRestantes(comPlano(null, 7)) === null,
+  'plano legado (sem limite) nao tem contagem de vagas',
+)
+ok(
+  !planoCheio(comPlano(null, 7)),
+  'barraca legada nunca fica cheia — um deploy nao pode travar quem ja rodava',
+)
+ok(!planoCheio(null), 'modo local / status desconhecido nao bloqueia cadastro')
+
+// Rebaixamento: a barraca fica ACIMA do limite. Ninguem e removido (isso e
+// decisao do banco), mas nao pode caber mais ninguem.
+ok(vagasRestantes(comPlano(2, 5)) === 0, 'acima do limite nao devolve vaga negativa')
+ok(planoCheio(comPlano(2, 5)), 'barraca acima do limite nao aceita usuario novo')
 
 console.log(falhas === 0 ? '\nTudo certo.\n' : `\n${falhas} falha(s).\n`)
 process.exit(falhas === 0 ? 0 : 1)

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   listarBarracas,
   listarCobrancas,
+  listarPlanos,
+  contratarPlano,
   definirStatus,
   gerarCobranca,
   baixarCobranca,
@@ -45,6 +47,7 @@ function competenciaBR(iso) {
 export default function Admin({ notify }) {
   const [barracas, setBarracas] = useState([])
   const [cobrancas, setCobrancas] = useState([])
+  const [planos, setPlanos] = useState([])
   const [selecionada, setSelecionada] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
@@ -57,6 +60,7 @@ export default function Admin({ notify }) {
       setBarracas(lista)
       const todas = await listarCobrancas(null)
       setCobrancas(todas)
+      setPlanos(await listarPlanos())
     } catch (e) {
       setErro(e.message || 'Não deu para carregar o painel.')
     } finally {
@@ -138,8 +142,9 @@ export default function Admin({ notify }) {
               <tr>
                 <th>Barraca</th>
                 <th>Situação</th>
+                <th>Plano</th>
                 <th>Mensalidade</th>
-                <th>Membros</th>
+                <th>Usuários</th>
                 <th>Pedidos</th>
                 <th>Último pedido</th>
                 <th>Em aberto</th>
@@ -158,8 +163,16 @@ export default function Admin({ notify }) {
                       <span className="muted"> até {dataBR(b.teste_expira_em)}</span>
                     ) : null}
                   </td>
+                  <td>{b.plano_nome || b.plano}</td>
                   <td>{formatBRL(b.valor_mensal)}</td>
-                  <td>{b.membros}</td>
+                  <td>
+                    {b.max_usuarios == null
+                      ? `${b.usuarios_atuais} (sem limite)`
+                      : `${b.usuarios_atuais} / ${b.max_usuarios}`}
+                    {b.max_usuarios != null && b.usuarios_atuais > b.max_usuarios ? (
+                      <strong className="admin-excedente"> acima do plano</strong>
+                    ) : null}
+                  </td>
                   <td>{b.pedidos_total}</td>
                   <td>{b.ultimo_pedido ? dataBR(b.ultimo_pedido) : '—'}</td>
                   <td>
@@ -189,6 +202,7 @@ export default function Admin({ notify }) {
         <BarracaDetalhe
           barraca={atual}
           cobrancas={cobrancasDaAtual}
+          planos={planos}
           onAcao={acao}
         />
       ) : null}
@@ -196,14 +210,14 @@ export default function Admin({ notify }) {
   )
 }
 
-function BarracaDetalhe({ barraca, cobrancas, onAcao }) {
+function BarracaDetalhe({ barraca, cobrancas, planos, onAcao }) {
   const [valor, setValor] = useState(String(barraca.valor_mensal ?? ''))
-  const [plano, setPlano] = useState(barraca.plano || 'mensal')
+  const [plano, setPlano] = useState(barraca.plano || '')
   const [obs, setObs] = useState('')
 
   useEffect(() => {
     setValor(String(barraca.valor_mensal ?? ''))
-    setPlano(barraca.plano || 'mensal')
+    setPlano(barraca.plano || '')
     setObs('')
   }, [barraca])
 
@@ -212,6 +226,70 @@ function BarracaDetalhe({ barraca, cobrancas, onAcao }) {
   return (
     <div className="card admin-detalhe">
       <h3>{barraca.nome}</h3>
+
+      <div className="admin-bloco">
+        <h4>Plano</h4>
+        <p className="muted">
+          O limite de usuários do plano vale no banco: a barraca não consegue passar dele nem
+          chamando a API direto.
+        </p>
+
+        <div className="admin-planos">
+          {planos
+            .filter((p) => p.contratavel || p.codigo === barraca.plano)
+            .map((p) => {
+              const atual = p.codigo === barraca.plano
+              const naoCabe =
+                p.max_usuarios != null && barraca.usuarios_atuais > p.max_usuarios
+              return (
+                <label
+                  key={p.codigo}
+                  className={`admin-plano${atual ? ' admin-plano-atual' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="plano"
+                    value={p.codigo}
+                    checked={plano === p.codigo}
+                    onChange={() => setPlano(p.codigo)}
+                  />
+                  <span className="admin-plano-nome">{p.nome}</span>
+                  <span className="muted">{p.descricao}</span>
+                  <span className="admin-plano-preco">{formatBRL(p.valor_mensal)}/mês</span>
+                  {Number(p.taxa_implantacao) > 0 ? (
+                    <span className="muted">
+                      + {formatBRL(p.taxa_implantacao)} de implantação (uma vez)
+                    </span>
+                  ) : null}
+                  {naoCabe ? (
+                    <span className="admin-excedente">
+                      A barraca tem {barraca.usuarios_atuais} usuários. Ninguém é removido, mas
+                      não entra gente nova até baixar para {p.max_usuarios}.
+                    </span>
+                  ) : null}
+                </label>
+              )
+            })}
+        </div>
+
+        <button
+          type="button"
+          className="btn-primary"
+          disabled={!plano || plano === barraca.plano}
+          onClick={() =>
+            onAcao(async () => {
+              const r = await contratarPlano(barraca.id, plano)
+              if (r && r.excedente > 0) {
+                throw new Error(
+                  `Plano trocado. Atenção: a barraca tem ${r.usuarios_atuais} usuários e o plano permite ${r.max_usuarios}. Ninguém foi removido, mas não entra gente nova até baixar.`,
+                )
+              }
+            }, 'Plano contratado.')
+          }
+        >
+          Contratar plano selecionado
+        </button>
+      </div>
 
       <div className="admin-bloco">
         <h4>Acesso</h4>
@@ -229,7 +307,6 @@ function BarracaDetalhe({ barraca, cobrancas, onAcao }) {
                 onAcao(
                   () =>
                     definirStatus(barraca.id, s, {
-                      plano,
                       valorMensal: valor === '' ? null : Number(valor),
                       observacao: obs || null,
                     }),
@@ -243,10 +320,6 @@ function BarracaDetalhe({ barraca, cobrancas, onAcao }) {
         </div>
 
         <div className="admin-campos">
-          <label>
-            Plano
-            <input value={plano} onChange={(e) => setPlano(e.target.value)} />
-          </label>
           <label>
             Mensalidade (R$)
             <input
@@ -273,7 +346,6 @@ function BarracaDetalhe({ barraca, cobrancas, onAcao }) {
             onAcao(
               () =>
                 definirStatus(barraca.id, barraca.status_assinatura, {
-                  plano,
                   valorMensal: valor === '' ? null : Number(valor),
                   observacao: obs || null,
                 }),
@@ -281,7 +353,7 @@ function BarracaDetalhe({ barraca, cobrancas, onAcao }) {
             )
           }
         >
-          Salvar plano e valor
+          Salvar valor e observação
         </button>
       </div>
 
@@ -291,15 +363,29 @@ function BarracaDetalhe({ barraca, cobrancas, onAcao }) {
           O Pix cai por fora; a baixa aqui é a confirmação. Quando não sobra nada em aberto, a
           barraca volta a operar sozinha.
         </p>
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() =>
-            onAcao(() => gerarCobranca(barraca.id), 'Cobrança do mês gerada.')
-          }
-        >
-          Gerar cobrança do mês
-        </button>
+        <div className="admin-acoes-linha">
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() =>
+              onAcao(() => gerarCobranca(barraca.id), 'Cobrança do mês gerada.')
+            }
+          >
+            Gerar cobrança do mês
+          </button>
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() =>
+              onAcao(
+                () => gerarCobranca(barraca.id, { tipo: 'implantacao' }),
+                'Taxa de implantação lançada.',
+              )
+            }
+          >
+            Lançar taxa de implantação
+          </button>
+        </div>
 
         {abertas.length === 0 ? <p className="muted">Nada em aberto.</p> : null}
 
@@ -308,6 +394,7 @@ function BarracaDetalhe({ barraca, cobrancas, onAcao }) {
             <thead>
               <tr>
                 <th>Mês</th>
+                <th>Tipo</th>
                 <th>Valor</th>
                 <th>Vencimento</th>
                 <th>Situação</th>
@@ -319,6 +406,7 @@ function BarracaDetalhe({ barraca, cobrancas, onAcao }) {
               {cobrancas.map((c) => (
                 <tr key={c.id}>
                   <td>{competenciaBR(c.competencia)}</td>
+                  <td>{c.tipo === 'implantacao' ? 'Implantação' : 'Mensalidade'}</td>
                   <td>{formatBRL(c.valor)}</td>
                   <td>{dataBR(c.vencimento)}</td>
                   <td>
