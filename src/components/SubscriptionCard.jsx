@@ -5,6 +5,7 @@ import {
   diasRestantesDeTeste,
 } from '../services/subscriptionService.js'
 import { formatBRL } from '../utils/money.js'
+import { isSupabaseConfigured } from '../services/supabaseClient.js'
 
 // "Minha assinatura" em Configuracoes (#90).
 //
@@ -45,12 +46,20 @@ export default function SubscriptionCard({ subscription }) {
     }
   }, [subscription])
 
+  // Dois "sem assinatura" diferentes, e confundir os dois e mentir para o
+  // dono. Sem Supabase configurado o aparelho esta mesmo em modo local e nao
+  // existe assinatura nenhuma. Ja com a nuvem ligada, `subscription` nulo
+  // significa que NAO DEU para saber agora — sinal caiu, ou o servidor ainda
+  // nao tem a tabela. Dizer "modo local" nesse caso faria o dono achar que
+  // perdeu a conta.
   if (!subscription) {
     return (
       <div className="card">
         <h3>Minha assinatura</h3>
         <p className="muted">
-          Este aparelho está no modo local, sem conta na nuvem. Não há assinatura para mostrar.
+          {isSupabaseConfigured
+            ? 'Não deu para consultar a assinatura agora. A barraca continua operando normalmente; tente de novo quando a internet voltar.'
+            : 'Este aparelho está no modo local, sem conta na nuvem. Não há assinatura para mostrar.'}
         </p>
       </div>
     )
