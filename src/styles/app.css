@@ -774,8 +774,22 @@ input:focus {
   justify-content: center;
   z-index: 80;
   padding: 18px;
+  /* Rede de seguranca: se por algum motivo o modal passar da tela, o fundo
+     rola em vez de cortar o conteudo pra fora da area visivel (#82). */
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
+/* Altura maxima + scroll proprio (#82).
+   O bug: no celular o popup de pagamento com o teclado dentro passa de 800px
+   de altura. Como o backdrop e `position: fixed` centralizado e o modal nao
+   tinha limite, o excesso vazava pra cima E pra baixo da tela — e o rodape,
+   justamente onde mora o botao verde de confirmar, ficava fora da area
+   visivel, sem jeito de rolar. No PC e no tablet sobra altura, por isso so
+   aparecia no smartphone.
+   `dvh` (e nao `vh`) porque no celular a barra de endereco do navegador entra
+   e sai; `vh` ignora isso e o botao volta a sumir quando a barra aparece. A
+   linha `vh` fica antes como reserva pra navegador velho. */
 .modal {
   width: min(540px, 100%);
   background: var(--cor-superficie);
@@ -784,6 +798,11 @@ input:focus {
   box-shadow: 0 24px 60px rgba(45, 33, 24, 0.24);
   padding: 28px;
   text-align: center;
+  max-height: calc(100vh - 36px);
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal h2 {
@@ -811,11 +830,19 @@ input:focus {
   margin-bottom: 18px;
 }
 
+/* Rodape grudado: mesmo que o miolo role, o par Voltar/Confirmar nunca sai
+   da vista. Balcao com fila nao combina com "role a tela pra achar o botao".
+   O fundo solido e obrigatorio, senao o conteudo passa por tras. */
 .modal-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-top: 16px;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: var(--cor-superficie);
+  padding-top: 12px;
 }
 
 /* Toast */
@@ -1674,7 +1701,7 @@ button:disabled {
   align-items: center;
   gap: 12px;
   min-height: 62px;
-  padding: 10px 14px;
+  padding: 12px 16px;
   border: 1px solid var(--cor-borda);
   border-radius: 14px;
   background: var(--cor-superficie);
@@ -1698,12 +1725,6 @@ button:disabled {
 .settings-nav-btn.active .muted,
 .settings-nav-btn.active .small {
   color: var(--cor-nav-texto);
-}
-
-.settings-nav-icon {
-  font-size: 24px;
-  line-height: 1;
-  flex-shrink: 0;
 }
 
 .settings-nav-text {
@@ -2215,4 +2236,158 @@ button:disabled {
 .keypad-erase {
   font-size: 26px;
   background: var(--cor-superficie-2);
+}
+
+
+/* ------------------------------------------------------------------
+   Tela baixa — popup de pagamento no celular (#82)
+
+   Regra por ALTURA, nao por largura. Quem espreme o popup e a altura do
+   aparelho: celular deitado tem largura de tablet e altura de nada, e por
+   largura essa regra nao pegaria.
+
+   Mora no FIM da folha de proposito. Regra de media query nao ganha
+   especificidade de graca: se ficar antes de `.keypad-key`, o `min-height`
+   base vence na cascata e a compactacao nao acontece (foi exatamente o que
+   aconteceu na primeira tentativa aqui).
+
+   Dois degraus: 800px pega tablet deitado e celular grande; 740px pega o
+   celular de verdade (360x640, 390x664, 412x732), onde a conta so fecha se o
+   teclado encolher e as acoes voltarem pra duas colunas. Os numeros nao sao
+   chute: vieram de medir `scrollHeight` contra `clientHeight` do modal em
+   cada tamanho (scripts/fluxo-mvp.mjs com VIEWPORT=...).
+   ------------------------------------------------------------------ */
+/* A virgula e OR: pega tela baixa OU tela estreita. O celular grande
+   (428x926) tem altura de sobra e mesmo assim estourava, porque o popup
+   em tamanho de desktop passa de 900px. Largura <= 560px e celular, e
+   celular sempre quer a versao compacta. */
+@media (max-height: 800px), (max-width: 560px) {
+  .modal-backdrop {
+    padding: 10px;
+    align-items: flex-start;
+  }
+
+  .modal {
+    padding: 18px;
+    border-radius: 22px;
+    max-height: calc(100vh - 20px);
+    max-height: calc(100dvh - 20px);
+  }
+
+  .modal h2 {
+    font-size: 25px;
+    margin-bottom: 6px;
+  }
+
+  .modal p {
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+
+  .modal-total {
+    font-size: 24px;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+  }
+
+  .modal-actions {
+    margin-top: 12px;
+    padding-top: 10px;
+  }
+
+  .ticket-entry-display {
+    font-size: 36px;
+    min-height: 52px;
+    padding: 8px 12px;
+  }
+
+  .ticket-entry-display.empty {
+    font-size: 18px;
+    line-height: 2.2;
+  }
+
+  .keypad {
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  /* 52px continua bem acima do alvo minimo de toque (44px). */
+  .keypad-key {
+    min-height: 52px;
+    font-size: 25px;
+    border-radius: 12px;
+  }
+
+  .auto-ticket-number {
+    font-size: 52px;
+  }
+}
+
+@media (max-height: 740px) {
+  .modal {
+    padding: 14px 16px;
+  }
+
+  .modal h2 {
+    font-size: 21px;
+  }
+
+  /* Encolhe, nao esconde: sumir com a instrucao em tela pequena e receita de
+     operador perdido. */
+  .modal p {
+    font-size: 13px;
+    line-height: 1.35;
+    margin-bottom: 10px;
+  }
+
+  .modal-total {
+    font-size: 21px;
+    padding: 8px 14px;
+    margin-bottom: 10px;
+  }
+
+  .ticket-entry-label {
+    font-size: 13px;
+  }
+
+  .ticket-entry-display {
+    font-size: 30px;
+    min-height: 44px;
+  }
+
+  .ticket-entry-display.empty {
+    font-size: 16px;
+    line-height: 2.2;
+  }
+
+  /* 44px e o alvo minimo de toque recomendado. Nao descer daqui: abaixo
+     disso o dedo apressado erra a tecla e a senha sai errada. */
+  .keypad-key {
+    min-height: 44px;
+    font-size: 22px;
+  }
+
+  .keypad {
+    gap: 5px;
+    margin-top: 6px;
+  }
+
+  /* Volta pra duas colunas: aqui o que falta e altura, largura tem. Sem isso
+     o rodape grudado come 130px da tela sozinho. */
+  .modal-actions {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 8px;
+  }
+
+  .modal-actions button {
+    font-size: 15px;
+    min-height: 52px;
+    padding: 8px 10px;
+  }
+
+  .auto-ticket-number {
+    font-size: 44px;
+  }
 }
