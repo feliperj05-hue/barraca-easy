@@ -1,17 +1,32 @@
-import { avisoDeTeste } from '../services/subscriptionService.js'
+import { avisoDeTeste, diasRestantesDeTeste } from '../services/subscriptionService.js'
 
-// Aviso de teste chegando ao fim (#90).
+// Faixa de periodo de teste (#96).
 //
-// Aparece so nos ultimos 7 dias e como faixa fina no rodape: o operador esta
-// atendendo fila, nao pode levar um modal na cara por causa de cobranca. Quem
-// resolve isso e o dono, com calma, na tela de assinatura.
-export default function TrialBanner({ subscription, role }) {
+// Por que ela mudou: antes so aparecia nos ultimos dias e so para o dono. O
+// resultado foi o proprio Felipe abrir o app com uma conta em teste, nao ver
+// aviso nenhum e concluir que a pessoa tinha entrado como cliente pleno. Se
+// quem fez o produto nao percebeu, o cliente tambem nao percebe.
+//
+// Agora aparece durante o teste INTEIRO. Continua sendo faixa fina no rodape,
+// nao modal: o operador esta atendendo fila e nao pode levar um pop-up na
+// cara por causa de cobranca. Quem resolve isso e o dono, com calma.
+export default function TrialBanner({ subscription, role, onAbrirAssinatura }) {
   const aviso = avisoDeTeste(subscription)
-  if (!aviso || role !== 'dono') return null
+  if (!aviso) return null
+
+  const dias = diasRestantesDeTeste(subscription)
+  const urgente = dias != null && dias <= 2
+
   return (
-    <div className="trial-banner" role="status">
+    <div className={'trial-banner' + (urgente ? ' trial-urgente' : '')} role="status">
       <strong>{aviso}</strong>
-      <span>Veja em Configurações › Minha assinatura como continuar.</span>
+      {role === 'dono' && onAbrirAssinatura ? (
+        <button type="button" className="trial-cta" onClick={onAbrirAssinatura}>
+          Ver planos
+        </button>
+      ) : (
+        <span>Depois desse prazo é preciso assinar para continuar vendendo.</span>
+      )}
     </div>
   )
 }

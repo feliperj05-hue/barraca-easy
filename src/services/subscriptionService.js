@@ -147,9 +147,12 @@ export function motivoBloqueio(sub) {
 }
 
 // Aviso amarelo de teste acabando: aparece nos ultimos dias, sem atrapalhar.
+// O teste passou a ser de 7 dias (#96), entao o aviso vale o teste INTEIRO —
+// nao so a reta final. Foi exatamente por nao ver aviso nenhum que o dono do
+// produto achou que uma conta nova tinha entrado liberada.
 export function avisoDeTeste(sub) {
   const dias = diasRestantesDeTeste(sub)
-  if (dias == null || dias < 0 || dias > 7) return null
+  if (dias == null || dias < 0) return null
   if (dias === 0) return 'Seu teste grátis termina hoje.'
   if (dias === 1) return 'Seu teste grátis termina amanhã.'
   return `Seu teste grátis termina em ${dias} dias.`
@@ -166,6 +169,49 @@ export function vagasRestantes(sub) {
 export function planoCheio(sub) {
   const vagas = vagasRestantes(sub)
   return vagas != null && vagas <= 0
+}
+
+// Catalogo de planos visto pelo DONO (so os contratavais: o legado nao e
+// oferecido a ninguem).
+export async function listarPlanosDisponiveis() {
+  if (!isSupabaseConfigured) return []
+  const { data, error } = await supabase
+    .from('planos')
+    .select('codigo, nome, descricao, max_usuarios, valor_mensal, taxa_implantacao')
+    .eq('contratavel', true)
+    .order('ordem')
+  if (error) throw error
+  return data || []
+}
+
+// Contratar e MANIFESTACAO DE INTERESSE, nao pagamento: troca o plano e deixa
+// a cobranca em aberto. Quem confirma o dinheiro (Pix recebido por fora) e o
+// Felipe, no painel. Por isso a barraca NAO fica ativa so por clicar aqui.
+export async function contratarPlano(tenantId, codigo) {
+  const { data, error } = await supabase.rpc('contratar_plano', {
+    p_tenant_id: tenantId,
+    p_plano: codigo,
+  })
+  if (error) throw error
+  return Array.isArray(data) ? data[0] : data
+}
+
+// Dados de pagamento. Vem do banco (nao de env var) porque o Felipe vai
+// querer trocar a chave sem depender de deploy.
+export async function lerDadosPix() {
+  if (!isSupabaseConfigured) return null
+  try {
+    const { data, error } = await supabase
+      .from('plataforma_config')
+      .select('chave, valor')
+      .in('chave', ['pix_chave', 'pix_nome'])
+    if (error) throw error
+    const mapa = {}
+    for (const linha of data || []) mapa[linha.chave] = linha.valor
+    return mapa.pix_chave ? mapa : null
+  } catch {
+    return null
+  }
 }
 
 // Cobrancas da propria barraca (o dono ve o que deve). RLS `cobrancas_select`

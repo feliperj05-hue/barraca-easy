@@ -2914,3 +2914,98 @@ button:disabled {
   color: var(--cor-perigo);
   font-weight: 600;
 }
+
+
+/* --- Periodo de teste bem visivel (#96) ------------------------------- */
+
+/* Selo no cabecalho. O requisito e "dificil de nao ver": fica colado no nome
+   da barraca, em toda tela, para dono e operador. */
+.trial-badge {
+  display: inline-block;
+  margin-top: 0.2rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: var(--cor-acao-tint);
+  color: var(--cor-acao-texto);
+  border: 1px solid var(--cor-acento-suave);
+}
+
+.trial-badge-urgente {
+  background: var(--cor-perigo-tint);
+  color: var(--cor-perigo);
+  border-color: var(--cor-perigo);
+}
+
+.trial-urgente {
+  background: var(--cor-perigo-tint);
+  border-top-color: var(--cor-perigo);
+}
+
+/* Atalho da faixa para a tela de planos: alvo de dedo, nao link fininho. */
+.trial-cta {
+  border: 1px solid var(--cor-acao);
+  background: var(--cor-acao);
+  color: var(--cor-acao-texto-claro, #fff);
+  border-radius: 999px;
+  padding: 0.25rem 0.9rem;
+  font-weight: 700;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+/* --- Escolha de plano pelo dono --------------------------------------- */
+
+.planos-card {
+  margin-top: 1rem;
+}
+
+.planos-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.plano-item {
+  border: 1px solid var(--cor-borda);
+  border-radius: 0.8rem;
+  padding: 0.85rem;
+  background: var(--cor-superficie);
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+}
+
+.plano-atual {
+  border-color: var(--cor-status-ok);
+  background: #f2f8f1;
+}
+
+.plano-cabeca {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.plano-valor {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.plano-item button {
+  margin-top: 0.4rem;
+  width: 100%;
+}
+
+.plano-escolhido {
+  border-top: 1px solid var(--cor-borda);
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+}
+
+.plano-escolhido h4 {
+  margin: 0 0 0.4rem;
+}

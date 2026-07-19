@@ -4,6 +4,7 @@ import {
   listarCobrancas,
   listarPlanos,
   contratarPlano,
+  estenderTeste,
   definirStatus,
   gerarCobranca,
   baixarCobranca,
@@ -296,6 +297,24 @@ function BarracaDetalhe({ barraca, cobrancas, planos, onAcao }) {
         <p className="muted">
           Suspensa e cancelada não lançam pedido — o bloqueio é do banco, não só da tela.
         </p>
+        <div className="admin-status-botoes">
+          {[7, 15, 30].map((d) => (
+            <button
+              key={d}
+              type="button"
+              className="btn-ghost"
+              onClick={() =>
+                onAcao(
+                  () => estenderTeste(barraca.id, d),
+                  `Teste estendido em ${d} dias.`,
+                )
+              }
+            >
+              +{d} dias de teste
+            </button>
+          ))}
+        </div>
+
         <div className="admin-status-botoes">
           {STATUS.map((s) => (
             <button

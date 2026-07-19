@@ -9,6 +9,7 @@ import Production from './routes/Production.jsx'
 import Closing from './routes/Closing.jsx'
 import Settings from './routes/Settings.jsx'
 import TrialBanner from './components/TrialBanner.jsx'
+import TrialBadge from './components/TrialBadge.jsx'
 import Admin from './routes/Admin.jsx'
 import { souAdmin } from './services/adminService.js'
 import { useAuth } from './auth/AuthContext.jsx'
@@ -57,7 +58,8 @@ import { downloadClosingReport } from './services/reportService.js'
 const ORDERS_REFRESH_MS = 10000
 
 export default function App() {
-  const { role, membership, user, session, signOut, subscription } = useAuth()
+  const { role, membership, user, session, signOut, subscription, refreshSubscription } =
+    useAuth()
 
   // Largura da senha (#79). Vive num lugar so porque `normalizeTicket` e
   // chamada la no fundo do orderService, inclusive no replay da fila offline,
@@ -489,6 +491,7 @@ export default function App() {
       role={role}
       onLogout={session ? signOut : null}
       onOpenSettings={canOpenSettings ? () => setScreen('settings') : null}
+      selo={<TrialBadge subscription={subscription} />}
       rodape={
         <>
           <DevFeedbackButton tela={screenLabel} contexto={pilotContext} notify={notify} />
@@ -534,11 +537,18 @@ export default function App() {
           vendasNoCaixa={orders.length}
           onTicketModeChange={setTicketModeState}
           subscription={subscription}
+          onContratou={() => refreshSubscription(membership && membership.tenantId)}
         />
       )}
       {currentScreen === 'admin' && isAdmin && <Admin notify={notify} />}
       <Toast message={toast} />
-      <TrialBanner subscription={subscription} role={role} />
+      <TrialBanner
+        subscription={subscription}
+        role={role}
+        onAbrirAssinatura={
+          canOpenSettings ? () => setScreen('settings') : null
+        }
+      />
       <SyncAlerts />
     </Layout>
   )

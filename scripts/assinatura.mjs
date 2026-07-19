@@ -121,9 +121,16 @@ ok(
 
 console.log('\n5. Aviso de teste acabando')
 ok(avisoDeTeste(sub({ status_assinatura: 'ativa' })) === null, 'assinante ativo nao ve aviso')
+// Mudou na #96: o aviso vale o teste INTEIRO, nao so a reta final. Foi por
+// nao ver aviso nenhum que o dono do produto achou que uma conta nova tinha
+// entrado como cliente pleno.
 ok(
-  avisoDeTeste(sub({ status_assinatura: 'teste', teste_expira_em: emDias(20) })) === null,
-  'teste longe do fim nao polui a tela',
+  avisoDeTeste(sub({ status_assinatura: 'teste', teste_expira_em: emDias(6) })) !== null,
+  'avisa desde o comeco do teste de 7 dias',
+)
+ok(
+  avisoDeTeste(sub({ status_assinatura: 'teste', teste_expira_em: emDias(-1) })) === null,
+  'teste ja vencido nao mostra faixa de teste (a tela de bloqueio assume)',
 )
 ok(
   /termina em 5 dias/.test(
