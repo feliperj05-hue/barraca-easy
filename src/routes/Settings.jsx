@@ -34,6 +34,12 @@ export default function Settings({
   onTicketModeChange,
   subscription,
   onContratou,
+  // Secao aberta de cara. O App manda `assinatura` quando a pessoa chega do
+  // site comercial com um plano ja escolhido (#111). ISTO PRECISA CONTINUAR
+  // DECLARADO AQUI: ja foi esquecido uma vez e derrubou a tela inteira de
+  // Configuracoes com ReferenceError, porque em modulo ES a variavel livre
+  // nao vira `undefined`, vira erro no render (#113).
+  initialSection,
 }) {
   const sections = visibleFor(SETTINGS_SECTIONS, role)
   const [active, setActive] = useState(() =>
