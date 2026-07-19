@@ -32,6 +32,16 @@ on:
         default: staging
         options: [ staging, production ]
 
+# Trava de concorrencia (#104). Dois merges na main em sequencia rapida
+# disparavam dois runs publicando no MESMO canal do Firebase, sem ordem
+# garantida: o run mais lento podia sobrescrever o mais novo, com os dois
+# verdes. O grupo e por canal alvo. Producao NUNCA e cancelada no meio
+# (cancel-in-progress false); PR pode cancelar o run velho, que so
+# interessa o ultimo commit.
+concurrency:
+  group: deploy-${{ github.event_name == 'repository_dispatch' && 'production' || (github.event_name == 'workflow_dispatch' && inputs.environment || (github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'staging')) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
@@ -96,7 +106,19 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ steps.sb.outputs.key }}
         run: npm run build
 
+      # Carimbo do que foi construido. Serve de prova de conteudo na
+      # verificacao pos-deploy e para saber se a main esta a frente do que
+      # esta no ar, sem inspecionar bundle na mao (#104).
+      - name: Carimbar versao no dist
+        run: |
+          printf '{"sha":"%s","ref":"%s","env":"%s","built_at":"%s"}\n' \
+            "${{ github.sha }}" "${{ github.ref_name }}" \
+            "${{ steps.target.outputs.env }}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            > dist/version.json
+          cat dist/version.json
+
       - name: Deploy STAGING (push na main / dispatch staging)
+        id: deploy_staging
         if: ${{ steps.target.outputs.env == 'staging' && github.event_name != 'pull_request' && env.FIREBASE_SERVICE_ACCOUNT != '' }}
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
@@ -116,6 +138,7 @@ jobs:
           expires: 7d
 
       - name: Deploy PRODUCAO (workflow_dispatch production ou repository_dispatch)
+        id: deploy_producao
         if: ${{ steps.target.outputs.env == 'production' && env.FIREBASE_SERVICE_ACCOUNT != '' }}
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
@@ -123,3 +146,58 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: ${{ vars.FIREBASE_PROJECT_ID }}
           channelId: live
+
+      # CI verde nao e prova de deploy (#104). Baixa o version.json que o
+      # canal esta SERVINDO e exige que o sha bata com o commit deste run.
+      # Sem isso, publicacao fora de ordem ou deploy que nao pegou passam
+      # despercebidos.
+      - name: Verificar bundle publicado (por conteudo)
+        if: ${{ github.event_name != 'pull_request' && env.FIREBASE_SERVICE_ACCOUNT != '' }}
+        run: |
+          set -uo pipefail
+          if [ "${{ steps.target.outputs.env }}" = "production" ]; then
+            BASE="https://${{ vars.FIREBASE_PROJECT_ID }}.web.app"
+          else
+            BASE="${{ steps.deploy_staging.outputs.details_url }}"
+          fi
+          if [ -z "$BASE" ]; then
+            echo "::error::URL do canal vazia; nao da para verificar o que foi publicado."
+            exit 1
+          fi
+          echo "Verificando $BASE/version.json"
+          SHA=""
+          for i in 1 2 3 4 5 6; do
+            SERVIDO=$(curl -fsS -H 'Cache-Control: no-cache' "$BASE/version.json" || echo '')
+            SHA=$(printf '%s' "$SERVIDO" | sed -n 's/.*"sha":"\\([^"]*\\)".*/\\1/p')
+            if [ "$SHA" = "${{ github.sha }}" ]; then
+              echo "OK: canal servindo ${{ github.sha }}"
+              exit 0
+            fi
+            echo "tentativa $i: servido='$SHA' esperado='${{ github.sha }}' (aguardando propagacao)"
+            sleep 10
+          done
+          echo "::error::O canal continua servindo '$SHA' e nao o commit ${{ github.sha }} deste run."
+          exit 1
+
+      # Depois de publicar staging, avisa se producao ficou para tras. Foi
+      # esse silencio que deixou #102/#103 mergeados e fora do ar (e antes
+      # deles a impressora, #67).
+      - name: Avisar se a producao esta atrasada
+        if: ${{ steps.target.outputs.env == 'staging' && github.event_name == 'push' && env.FIREBASE_SERVICE_ACCOUNT != '' }}
+        run: |
+          PROD=$(curl -fsS -H 'Cache-Control: no-cache' "https://${{ vars.FIREBASE_PROJECT_ID }}.web.app/version.json" || echo '')
+          SHA=$(printf '%s' "$PROD" | sed -n 's/.*"sha":"\\([^"]*\\)".*/\\1/p')
+          if [ "$SHA" = "${{ github.sha }}" ]; then
+            echo "Producao esta em dia com a main." >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## Producao esta ATRASADA em relacao a main"
+              echo ""
+              echo "- main: ${{ github.sha }}"
+              echo "- producao servindo: ${SHA:-desconhecido}"
+              echo ""
+              echo "Para publicar: Actions > Run workflow com environment=production,"
+              echo "ou repository_dispatch do tipo deploy-production."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::Producao esta atrasada em relacao a main (${SHA:-desconhecido} != ${{ github.sha }})."
+          fi
