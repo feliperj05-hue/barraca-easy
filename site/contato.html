@@ -14,9 +14,6 @@
     <link rel="stylesheet" href="./site.css" />
   </head>
   <body>
-    <p class="aviso-provisorio">
-      Pagina em construcao — conteudo e visual provisorios, ainda sem design.
-    </p>
 
     <header class="topo">
       <div class="faixa">
@@ -35,19 +32,26 @@
         <h1>Contato</h1>
         <p class="sub">Duvida, sugestao ou problema: fala direto.</p>
 
-        <p>
-          <strong>E-mail:</strong>
-          <em>(a definir — ainda nao ha endereco de suporte publicado)</em>
-        </p>
-        <p>
-          <strong>WhatsApp:</strong>
-          <em>(a definir)</em>
-        </p>
+        <!--
+          E-MAIL DE CONTATO (#114). O endereco oficial definido pelo Felipe e
+          contato@barracaeasy.com.br, e ele ja esta guardado em
+          src/services/siteConfig.js (CONTATO_EMAIL).
 
+          Ele NAO aparece aqui ainda porque o dominio barracaeasy.com.br nao
+          foi registrado: hoje esse endereco nao recebe nada, e mensagem
+          mandada para ele volta. Canal de contato morto numa pagina que vende
+          assinatura e pior do que canal nenhum — o cliente acha que falou com
+          a gente e fica esperando resposta.
+
+          QUANDO O DOMINIO ENTRAR NO AR: ligue VITE_CONTATO_ATIVO=true (isso
+          resolve o site React de /comercial sozinho) e troque o paragrafo
+          abaixo pelo endereco aqui, nesta pagina estatica.
+        -->
         <p>
-          Quem ja usa o sistema tem um caminho mais rapido: o botao
-          <strong>Fale com o desenvolvedor</strong>, dentro do proprio app. Ele manda
-          junto a tela em que voce estava, o que ajuda a resolver sem ficar perguntando.
+          <strong>Pelo proprio sistema:</strong> quem ja usa tem o caminho mais rapido e o
+          mais completo. O botao <strong>Fale com o desenvolvedor</strong>, dentro do app,
+          manda junto a tela em que voce estava, o que ajuda a resolver sem ficar
+          perguntando ida e volta.
         </p>
       </div>
     </main>

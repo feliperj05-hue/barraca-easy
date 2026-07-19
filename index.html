@@ -3,7 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#e8541e" />
+    <!-- theme-color pinta a barra de status do sistema, que fica colada no
+         cabecalho do app. O cabecalho e `--cor-nav` (#3c3835, carvao) da paleta
+         oficial da #71, entao a barra encosta nele sem emenda. O valor antigo
+         (#e8541e) era residuo da paleta anterior: nao era o laranja de acao
+         (#f45f0d) nem o institucional (#ca6129) — nao pertencia a paleta
+         nenhuma. Se mudar aqui, mude tambem em public/manifest.json (#114). -->
+    <meta name="theme-color" content="#3c3835" />
     <meta name="description" content="Sistema simples de pedidos para barracas, feiras e negocios de rua." />
 
     <!-- PWA: instalacao basica -->
