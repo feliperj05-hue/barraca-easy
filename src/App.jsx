@@ -142,7 +142,11 @@ export default function App() {
     let active = true
     ;(async () => {
       try {
-        await ensureSeeded(tenantCtx)
+        // Semear so como dono (#99): depois que a RLS passou a exigir papel de
+        // dono para escrever em `produtos`, um operador abrindo o app de uma
+        // barraca com cardapio vazio tomaria erro de permissao e ficaria sem
+        // cardapio nenhum. Semear e tarefa de quem configura a barraca.
+        if (role !== "operador") await ensureSeeded(tenantCtx)
         const list = await fetchMenu(tenantCtx)
         if (active) setMenu(list)
       } catch {
@@ -152,7 +156,7 @@ export default function App() {
     return () => {
       active = false
     }
-  }, [tenantCtx, notify])
+  }, [tenantCtx, role, notify])
 
   // Carrega os pedidos (local ou nuvem) por tenant.
   useEffect(() => {
