@@ -168,7 +168,7 @@ jobs:
           SHA=""
           for i in 1 2 3 4 5 6; do
             SERVIDO=$(curl -fsS -H 'Cache-Control: no-cache' "$BASE/version.json" || echo '')
-            SHA=$(printf '%s' "$SERVIDO" | sed -n 's/.*"sha":"\\([^"]*\\)".*/\\1/p')
+            SHA=$(printf '%s' "$SERVIDO" | jq -r '.sha // empty' 2>/dev/null || echo '')
             if [ "$SHA" = "${{ github.sha }}" ]; then
               echo "OK: canal servindo ${{ github.sha }}"
               exit 0
@@ -186,7 +186,7 @@ jobs:
         if: ${{ steps.target.outputs.env == 'staging' && github.event_name == 'push' && env.FIREBASE_SERVICE_ACCOUNT != '' }}
         run: |
           PROD=$(curl -fsS -H 'Cache-Control: no-cache' "https://${{ vars.FIREBASE_PROJECT_ID }}.web.app/version.json" || echo '')
-          SHA=$(printf '%s' "$PROD" | sed -n 's/.*"sha":"\\([^"]*\\)".*/\\1/p')
+          SHA=$(printf '%s' "$PROD" | jq -r '.sha // empty' 2>/dev/null || echo '')
           if [ "$SHA" = "${{ github.sha }}" ]; then
             echo "Producao esta em dia com a main." >> "$GITHUB_STEP_SUMMARY"
           else
