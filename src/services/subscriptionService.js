@@ -214,6 +214,23 @@ export async function lerDadosPix() {
   }
 }
 
+// Status do usuario logado SEM dizer qual barraca (#107).
+//
+// Diferente de `loadSubscription`, que pergunta por um tenant conhecido. Esta
+// e a porta de entrada do site comercial, onde a pessoa pode nem ter conta:
+// uma unica ida ao banco responde tem-conta / tem-barraca / plano / em-teste
+// / dias-restantes.
+//
+// A decisao continua sendo do banco. O front so exibe o que vier — inclusive
+// porque isto vai virar tela de venda, e regra de cobranca decidida no
+// navegador e regra que o cliente pode reescrever.
+export async function meuStatus() {
+  if (!isSupabaseConfigured) return null
+  const { data, error } = await supabase.rpc('meu_status')
+  if (error) throw error
+  return Array.isArray(data) ? data[0] || null : data || null
+}
+
 // Cobrancas da propria barraca (o dono ve o que deve). RLS `cobrancas_select`
 // ja limita ao dono do tenant; aqui e so leitura.
 export async function listarMinhasCobrancas(tenantId) {

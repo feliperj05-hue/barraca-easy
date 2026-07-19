@@ -1,0 +1,123 @@
+/* Site publico — folha PROVISORIA (#107).
+ *
+ * Isto NAO e o visual do produto. E o minimo para as paginas serem legiveis
+ * enquanto o designer nao entrega: uma coluna, texto em tamanho confortavel,
+ * contraste suficiente. Tudo aqui e para ser JOGADO FORA quando o design
+ * chegar — por isso vive num arquivo separado de `src/styles/app.css` e nao
+ * compartilha nenhuma classe com o app.
+ *
+ * As cores sao as que o app ja usa hoje, so para as paginas nao saírem
+ * cinzas a ponto de atrapalhar a leitura de quem for revisar o texto.
+ */
+
+:root {
+  --laranja: #e8541e;
+  --tinta: #23201d;
+  --suave: #6b635c;
+  --papel: #fffaf5;
+  --linha: #e7ddd3;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--tinta);
+  background: var(--papel);
+  line-height: 1.6;
+}
+
+.aviso-provisorio {
+  background: #fff3cd;
+  border-bottom: 1px solid #e0cfa0;
+  color: #6b5518;
+  padding: 10px 16px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.faixa {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+header.topo {
+  border-bottom: 1px solid var(--linha);
+  padding: 18px 0;
+}
+
+header.topo .faixa {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.marca {
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--laranja);
+  text-decoration: none;
+}
+
+nav.menu {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+nav.menu a { color: var(--suave); text-decoration: none; }
+nav.menu a:hover, nav.menu a[aria-current="page"] { color: var(--laranja); }
+
+main { padding: 32px 0 56px; }
+
+h1 { font-size: 30px; line-height: 1.25; margin: 0 0 12px; }
+h2 { font-size: 22px; margin: 32px 0 8px; }
+h3 { font-size: 17px; margin: 20px 0 6px; }
+
+p, li { font-size: 17px; }
+.sub { color: var(--suave); font-size: 19px; }
+
+.botao {
+  display: inline-block;
+  background: var(--laranja);
+  color: #fff;
+  text-decoration: none;
+  padding: 13px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-top: 16px;
+}
+
+.botao.secundario {
+  background: transparent;
+  color: var(--laranja);
+  border: 1px solid var(--laranja);
+}
+
+table.planos {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+table.planos th, table.planos td {
+  text-align: left;
+  padding: 11px 10px;
+  border-bottom: 1px solid var(--linha);
+  font-size: 16px;
+}
+
+table.planos th { color: var(--suave); font-weight: 600; }
+
+footer.rodape {
+  border-top: 1px solid var(--linha);
+  padding: 24px 0;
+  color: var(--suave);
+  font-size: 15px;
+}
+
+footer.rodape a { color: var(--suave); }

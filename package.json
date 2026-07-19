@@ -19,7 +19,9 @@
     "teclado": "node scripts/teclado.mjs",
     "fale-com-dev": "node scripts/fale-com-dev.mjs",
     "lgpd": "node scripts/lgpd.mjs",
-    "assinatura": "node scripts/assinatura.mjs"
+    "assinatura": "node scripts/assinatura.mjs",
+    "rotas": "node scripts/rotas.mjs",
+    "rotas-navegador": "node scripts/rotas-navegador.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",
