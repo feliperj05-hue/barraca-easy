@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { listarPlanosPublicos, listarNovidadesPublicas } from './marketingService.js'
-import { mkt, app, MARKETING_BASE, URL_PRIVACIDADE, URL_TERMOS } from '../services/siteConfig.js'
+import { mkt, app, MARKETING_BASE, URL_PRIVACIDADE, URL_TERMOS, CONTATO_EMAIL, contatoVisivel, mailtoContato } from '../services/siteConfig.js'
 import { rememberSelectedPlan } from '../services/selectedPlan.js'
 import './marketing.css'
 
@@ -376,7 +376,20 @@ function HomePage() {
       <section className="mk-cta" id="contato">
         <div className="mk-container cta-panel">
           <div><p className="eyebrow light">Comece agora</p><h2>Organize sua operação antes do próximo horário de pico.</h2><p>Crie sua conta, cadastre sua barraca e conheça o sistema durante 7 dias.</p></div>
-          <div className="cta-actions"><a className="mk-button mk-button-primary mk-button-large" href={app('?acao=cadastro')}>Testar gratuitamente <Icon name="arrow" size={20}/></a><a className="mk-button mk-button-dark-outline" href={mkt('/precos')}>Conhecer os planos</a></div>
+          <div className="cta-actions">
+            <a className="mk-button mk-button-primary mk-button-large" href={app('?acao=cadastro')}>Testar gratuitamente <Icon name="arrow" size={20}/></a>
+            <a className="mk-button mk-button-dark-outline" href={mkt('/precos')}>Conhecer os planos</a>
+            {/* Canal de contato honesto: enquanto o dominio nao existe, mandar
+                a pessoa escrever para um endereco que devolve a mensagem seria
+                pior do que nao oferecer canal nenhum (#114). Fica DENTRO de
+                .cta-actions de proposito: .cta-panel e um flex de dois filhos,
+                e um terceiro filho solto quebraria o layout. */}
+            <p className="cta-contato">
+              {contatoVisivel()
+                ? <>Prefere escrever? <a href={mailtoContato('Contato pelo site')}>{CONTATO_EMAIL}</a></>
+                : <>Já usa o sistema? Fale com a gente pelo botão <strong>Fale com o desenvolvedor</strong>, dentro do app.</>}
+            </p>
+          </div>
         </div>
       </section>
     </>
@@ -409,7 +422,18 @@ function Footer() {
         <div className="footer-brand"><Logo/><p>Sistema simples para organizar pedidos, produção, senhas e fechamento em pequenos negócios de alimentação.</p></div>
         <div><h3>Produto</h3><a href={mkt('#como-funciona')}>Como funciona</a><a href={mkt('#recursos')}>Recursos</a><a href={mkt('/precos')}>Planos</a><a href={mkt('/novidades')}>Novidades</a></div>
         <div><h3>Para seu negócio</h3><a href={mkt('#para-quem')}>Barracas e trailers</a><a href={mkt('#para-quem')}>Food trucks</a><a href={mkt('#para-quem')}>Feiras e eventos</a><a href={mkt('#para-quem')}>Quiosques</a></div>
-        <div><h3>Suporte</h3><a href={mkt('#contato')}>Contato</a><a href={mkt('#contato')}>Perguntas frequentes</a><a href={URL_PRIVACIDADE}>Privacidade</a><a href={URL_TERMOS}>Termos de uso</a></div>
+        <div>
+          <h3>Suporte</h3>
+          {/* O e-mail so entra quando o dominio estiver de pe (#114). Ate la o
+              link leva ao bloco de contato, que aponta o caminho que funciona
+              hoje: o botao "Fale com o desenvolvedor" dentro do app. */}
+          {contatoVisivel()
+            ? <a href={mailtoContato('Contato pelo site')}>{CONTATO_EMAIL}</a>
+            : <a href={mkt('#contato')}>Contato</a>}
+          <a href={mkt('#contato')}>Perguntas frequentes</a>
+          <a href={URL_PRIVACIDADE}>Privacidade</a>
+          <a href={URL_TERMOS}>Termos de uso</a>
+        </div>
       </div>
       <div className="mk-container footer-bottom"><span>© 2026 Barraca Easy. Todos os direitos reservados.</span><span>Feito para quem vive a operação.</span></div>
     </footer>

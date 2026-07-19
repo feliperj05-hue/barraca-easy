@@ -26,6 +26,39 @@ export const SITE_URL = String(
   import.meta.env.VITE_SITE_URL || 'https://barraca-easy.web.app',
 ).replace(/\/+$/, '')
 
+// --- Contato -----------------------------------------------------------
+//
+// E-mail oficial definido pelo Felipe (#114).
+//
+// POR QUE ELE VEM COM INTERRUPTOR. O dominio `barracaeasy.com.br` ainda NAO
+// foi registrado (ver DOMINIO_FUTURO acima). Enquanto isso, este endereco nao
+// existe: quem escrever recebe devolucao do servidor. Publicar canal de
+// contato morto numa pagina que vende assinatura e pior do que nao publicar
+// canal nenhum — o cliente acha que falou com a gente e fica esperando.
+//
+// Entao o endereco fica pronto e guardado aqui, e so aparece na tela quando
+// VITE_CONTATO_ATIVO estiver ligado. Virar e mudar variavel de ambiente, sem
+// deploy de codigo novo.
+//
+// Enquanto esta desligado, o site mostra o caminho que FUNCIONA hoje: o botao
+// "Fale com o desenvolvedor", dentro do proprio app.
+export const CONTATO_EMAIL = String(
+  import.meta.env.VITE_CONTATO_EMAIL || 'contato@barracaeasy.com.br',
+).trim()
+
+export const CONTATO_ATIVO =
+  String(import.meta.env.VITE_CONTATO_ATIVO || '').toLowerCase() === 'true'
+
+// O e-mail so existe para a tela quando o dominio estiver de pe.
+export function contatoVisivel() {
+  return CONTATO_ATIVO && CONTATO_EMAIL.length > 0
+}
+
+export function mailtoContato(assunto = '') {
+  const q = assunto ? '?subject=' + encodeURIComponent(assunto) : ''
+  return 'mailto:' + CONTATO_EMAIL + q
+}
+
 // Prefixo do site comercial. A raiz "/" continua sendo o APLICATIVO de
 // proposito: mexer nela muda o start_url do PWA e faria o tablet ja instalado
 // no piloto abrir na pagina de vendas. Trocar a home e decisao de produto
