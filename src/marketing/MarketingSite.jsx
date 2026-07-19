@@ -417,6 +417,19 @@ function Footer() {
 }
 
 export default function MarketingSite() {
+  // O app e o site dividem o mesmo index.html, e la o viewport bloqueia zoom
+  // de proposito: no balcao, um zoom acidental no meio do pedido atrapalha.
+  // Numa pagina de vendas isso vira barreira de acessibilidade — quem nao
+  // enxerga bem nao consegue aumentar o texto. Como o HTML e um so, o site
+  // libera o zoom em tempo de execucao, sem mexer no comportamento do app.
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="viewport"]')
+    if (!meta) return undefined
+    const antes = meta.getAttribute('content')
+    meta.setAttribute('content', 'width=device-width, initial-scale=1')
+    return () => meta.setAttribute('content', antes)
+  }, [])
+
   // Rota interna e relativa ao prefixo do site comercial (services/siteConfig).
   // Privacidade e termos NAO passam por aqui: apontam para o site estatico
   // (#107), que ja tem o texto juridico de verdade.
