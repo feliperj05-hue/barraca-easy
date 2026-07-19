@@ -36,7 +36,11 @@ export default function Settings({
   onContratou,
 }) {
   const sections = visibleFor(SETTINGS_SECTIONS, role)
-  const [active, setActive] = useState(() => (sections[0] ? sections[0].id : 'mode'))
+  const [active, setActive] = useState(() =>
+    initialSection && sections.some((section) => section.id === initialSection)
+      ? initialSection
+      : sections[0] ? sections[0].id : 'mode',
+  )
   const current = sections.some((s) => s.id === active) ? active : sections[0]?.id
   const activeSection = sections.find((s) => s.id === current)
 
