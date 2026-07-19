@@ -4,7 +4,10 @@ import {
   listarMinhasCobrancas,
   diasRestantesDeTeste,
   vagasRestantes,
+  cancelarMinhaAssinatura,
+  cancelamentoAgendado,
 } from '../services/subscriptionService.js'
+import CancelSubscriptionDialog from './CancelSubscriptionDialog.jsx'
 import { formatBRL } from '../utils/money.js'
 import { isSupabaseConfigured } from '../services/supabaseClient.js'
 import PlanosCard from './PlanosCard.jsx'
@@ -36,6 +39,9 @@ function competenciaBR(iso) {
 export default function SubscriptionCard({ subscription, onContratou, notify }) {
   const [cobrancas, setCobrancas] = useState([])
   const [erro, setErro] = useState('')
+  const [cancelando, setCancelando] = useState(false)
+  const [confirmando, setConfirmando] = useState(false)
+  const [erroCancelar, setErroCancelar] = useState('')
 
   useEffect(() => {
     let vivo = true
@@ -69,6 +75,31 @@ export default function SubscriptionCard({ subscription, onContratou, notify }) 
 
   const dias = diasRestantesDeTeste(subscription)
   const vagas = vagasRestantes(subscription)
+  const jaCancelada = subscription.status_assinatura === 'cancelada'
+  const agendado = cancelamentoAgendado(subscription)
+
+  async function confirmarCancelamento(motivo) {
+    setErroCancelar('')
+    setCancelando(true)
+    try {
+      const r = await cancelarMinhaAssinatura(subscription.tenant_id, motivo)
+      setConfirmando(false)
+      // Mensagem construida a partir do que o BANCO devolveu, nao do que a
+      // tela previu. Se os dois discordarem, quem conta a verdade e o banco.
+      if (notify) {
+        notify(
+          r && r.imediato === false && r.efetivo_em
+            ? `Assinatura cancelada. A barraca funciona até ${dataBR(r.efetivo_em)}.`
+            : 'Assinatura cancelada.',
+        )
+      }
+      if (onContratou) await onContratou()
+    } catch (e) {
+      setErroCancelar((e && e.message) || 'Não deu para cancelar agora. Tente de novo.')
+    } finally {
+      setCancelando(false)
+    }
+  }
 
   return (
     <>
@@ -117,6 +148,21 @@ export default function SubscriptionCard({ subscription, onContratou, notify }) 
         ) : null}
       </dl>
 
+      {agendado ? (
+        <p className="aviso-cancelamento">
+          <strong>Cancelamento pedido.</strong> Sua barraca funciona normalmente até{' '}
+          {dataBR(subscription.cancelamento_efetivo_em)}. Depois dessa data o acesso é
+          encerrado. Mudou de ideia? É só escolher um plano abaixo.
+        </p>
+      ) : null}
+
+      {jaCancelada ? (
+        <p className="aviso-cancelamento">
+          <strong>Assinatura cancelada.</strong> Seu histórico continua salvo. Para voltar a
+          usar, escolha um plano abaixo.
+        </p>
+      ) : null}
+
       {vagas === 0 ? (
         <p className="muted">
           Todas as vagas de usuário do plano estão em uso. Para incluir mais gente, é preciso
@@ -164,7 +210,40 @@ export default function SubscriptionCard({ subscription, onContratou, notify }) 
         O pagamento é feito por Pix e confirmado manualmente pelo suporte. Assim que a baixa é
         dada, a barraca volta a operar automaticamente.
       </p>
+
+      {/* CANCELAMENTO SELF-SERVICE (#115).
+
+          DISCRETO, NAO ESCONDIDO — e a diferenca importa. Ele e um link de
+          texto no fim do cartao, sem cor de destaque e sem virar botao grande:
+          ninguem cancela sem querer, e nao compete com a escolha de plano.
+
+          Mas ele esta na PRIMEIRA tela onde o dono vem falar de assinatura,
+          com o rotulo obvio ("Cancelar assinatura"), a dois toques da tela
+          inicial. Sem submenu, sem "area do cliente", sem procurar. Esconder
+          para segurar cliente e exatamente o que a regra proibe.
+
+          NAO transforme isto em: link no rodape do site, item de FAQ, "fale
+          com o suporte", formulario de pesquisa ou botao que so aparece depois
+          do teste acabar. */}
+      {!jaCancelada && !agendado ? (
+        <p className="assinatura-cancelar">
+          <button type="button" className="link-discreto" onClick={() => setConfirmando(true)}>
+            Cancelar assinatura
+          </button>
+        </p>
+      ) : null}
+
+      {erroCancelar ? <p className="auth-error">{erroCancelar}</p> : null}
       </div>
+
+      {confirmando ? (
+        <CancelSubscriptionDialog
+          subscription={subscription}
+          busy={cancelando}
+          onConfirm={confirmarCancelamento}
+          onClose={() => setConfirmando(false)}
+        />
+      ) : null}
 
       <PlanosCard subscription={subscription} onContratou={onContratou} notify={notify} />
     </>

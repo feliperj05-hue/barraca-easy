@@ -23,6 +23,7 @@
     "rotas": "node scripts/rotas.mjs",
     "rotas-navegador": "node scripts/rotas-navegador.mjs",
     "telas": "node scripts/telas.mjs",
+    "cancelamento": "node scripts/cancelamento.mjs",
     "previa-site": "node scripts/gerar-previa-site.mjs"
   },
   "dependencies": {
