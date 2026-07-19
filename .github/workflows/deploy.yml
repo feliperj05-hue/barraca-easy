@@ -71,6 +71,24 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Bateria de guardas sem navegador (#108). Sao Node puro, sem servidor
+      # nem browser, entao custam segundos e derrubam o CI se alguem quebrar
+      # uma regra de negocio critica (senha duplicada, portao offline, sessao
+      # offline, assinatura, LGPD, roteamento, diario do piloto, contraste).
+      # Os que dependem de navegador (fale-com-dev, lgpd, rotas-navegador)
+      # ficam de fora por enquanto — custo de browser no runner e decisao a
+      # parte.
+      - name: Testes sem navegador
+        run: |
+          npm run senha-automatica
+          npm run teclado
+          npm run portao-offline
+          npm run sessao-offline
+          npm run contraste
+          npm run rotas
+          npm run diario-piloto
+          npm run assinatura
+
       - name: Resolver ambiente alvo
         id: target
         run: |

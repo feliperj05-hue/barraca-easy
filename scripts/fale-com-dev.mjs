@@ -4,6 +4,20 @@
  * Prova o que interessa: o megafone sumiu, o link discreto existe em todas as
  * telas, as tres categorias estao la, e — o mais importante — o recado NAO se
  * perde quando nao ha nuvem (que e o caso do modo local).
+ *
+ * COMO RODAR. Igual ao rotas-navegador.mjs (#107): precisa de um servidor
+ * servindo o build e, para cair no modo local em vez da tela de Login, de um
+ * build SEM credenciais Supabase (#108 — rodar so `node scripts/fale-com-dev.mjs`
+ * sem subir nada antes bate numa porta morta e estoura esperando `.app-header`,
+ * o que parecia bug de seletor e nao era):
+ *
+ *   VITE_SUPABASE_URL= VITE_SUPABASE_PUBLISHABLE_KEY= npm run build
+ *   npx vite preview --port 4178
+ *   ALVO=http://localhost:4178/ npm run fale-com-dev
+ *
+ * ALVO com "localhost" e de proposito, nao "127.0.0.1": o `vite preview` sem
+ * `--host` escuta so em `::1` (IPv6) neste ambiente, e "localhost" resolve
+ * para os dois; "127.0.0.1" sozinho da connection refused.
  */
 import { chromium } from 'playwright-core'
 
