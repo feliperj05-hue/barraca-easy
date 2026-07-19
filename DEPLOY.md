@@ -56,7 +56,24 @@ que estiver na main no momento do disparo.
 
 ### Conferir o deploy de verdade
 
-Nao confie no "deploy succeeded" do CI — valide o artefato publicado:
+Nao confie no "deploy succeeded" do CI — valide o artefato publicado.
+
+**Jeito rapido (desde #104):** todo build carimba `dist/version.json` com o commit.
+O canal serve esse arquivo com `Cache-Control: no-store`, entao ele nunca vem de
+cache:
+
+```bash
+curl -s https://barraca-easy.web.app/version.json
+# {"sha":"944d066...","ref":"main","env":"production","built_at":"..."}
+```
+
+Se o `sha` for o commit que voce esperava, o que esta no ar e aquele codigo. O
+proprio pipeline faz essa checagem no step "Verificar bundle publicado (por
+conteudo)" e **falha o run** se o canal continuar servindo outro commit depois
+de 6 tentativas — CI verde passou a significar deploy publicado de verdade.
+
+**Jeito manual (marcador dentro do bundle),** util para conferir uma feature
+especifica:
 
 ```bash
 BUNDLE=$(curl -s https://barraca-easy.web.app/ | grep -o '/assets/index-[^"]*\.js' | head -1)
@@ -69,6 +86,24 @@ Sem `FIREBASE_SERVICE_ACCOUNT`, o pipeline so valida lint/build (nao publica, na
 falha). Se faltar VARIABLE do Supabase do ambiente alvo, o build **falha de
 proposito** (step "Checar credenciais Supabase") pra nunca subir bundle com
 credencial vazia.
+
+### Concorrencia e producao atrasada (#104)
+
+Duas armadilhas que ja morderam o projeto:
+
+1. **Dois merges quase simultaneos.** Os PRs #102 e #103 entraram com 2 segundos
+   de diferenca e dois runs publicaram no mesmo canal sem ordem garantida. Agora
+   o workflow tem `concurrency` com grupo por canal alvo (`production`,
+   `staging`, `pr-<n>`), entao os runs enfileiram em vez de correr. Producao usa
+   `cancel-in-progress: false` — deploy de producao nunca e cortado no meio.
+
+2. **Merge na main NAO publica producao.** Isso e de proposito (push na main vai
+   pro canal `staging`), mas antes nada avisava, e mudanca ficava mergeada e fora
+   do ar por horas — aconteceu com #102/#103 e antes com a impressora (#67). O
+   step "Avisar se a producao esta atrasada" compara o `version.json` de producao
+   com o HEAD da main e emite um warning + resumo no run quando ficam diferentes.
+
+Para publicar producao, veja "Deploy manual" abaixo.
 
 ## O que configurar no GitHub (Settings > Secrets and variables > Actions)
 
