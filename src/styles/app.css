@@ -3039,3 +3039,9 @@ button:disabled {
 .plano-escolhido h4 {
   margin: 0 0 0.4rem;
 }
+
+/* Plano escolhido no site comercial e lembrado ate o fim do cadastro (#111). */
+.plano-preselecionado {
+  border: 2px solid var(--cor-acao);
+  box-shadow: 0 0 0 3px var(--cor-acao-tint);
+}

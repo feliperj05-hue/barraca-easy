@@ -5,7 +5,11 @@ import { signIn, signUp, resendConfirmation } from '../services/authService.js'
 // Confirm email fica LIGADO no projeto: apos criar conta, o usuario precisa
 // confirmar o e-mail antes do primeiro login. Tratamos essa mensagem aqui.
 export default function Login() {
-  const [mode, setMode] = useState('signin') // 'signin' | 'signup'
+  // O site comercial manda ?acao=cadastro nos botoes "Testar gratuitamente".
+  const [mode, setMode] = useState(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('acao') === 'cadastro' ? 'signup' : 'signin'
+  }) // 'signin' | 'signup'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)

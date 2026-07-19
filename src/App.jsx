@@ -12,6 +12,7 @@ import TrialBanner from './components/TrialBanner.jsx'
 import TrialBadge from './components/TrialBadge.jsx'
 import Admin from './routes/Admin.jsx'
 import { souAdmin } from './services/adminService.js'
+import { readSelectedPlan } from './services/selectedPlan.js'
 import { useScreenRoute } from './services/router.js'
 import { useAuth } from './auth/AuthContext.jsx'
 import { setTicketWidth, TICKET_WIDTH_AUTO, TICKET_WIDTH_MANUAL } from './utils/tickets.js'
@@ -97,6 +98,15 @@ export default function App() {
   // deste arquivo (inclusive `onNavigate` e os `setScreen('settings')`)
   // continua identico — de proposito, com o piloto para rodar.
   const [screen, setScreen] = useScreenRoute()
+
+  // Quem escolheu um plano no site comercial cai direto em Minha assinatura
+  // para confirmar (#111). Feito com o setScreen do router (#107) para que a
+  // barra de enderecos acompanhe, em vez de trocar o estado por baixo.
+  const planoEscolhido = readSelectedPlan()
+  useEffect(() => {
+    if (planoEscolhido) setScreen('settings')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [orders, setOrders] = useState([])
   const [settings, setSettings] = useState(() => getSettings())
   const [menu, setMenu] = useState([])
@@ -535,6 +545,7 @@ export default function App() {
       )}
       {currentScreen === 'settings' && (
         <Settings
+          initialSection={planoEscolhido ? 'assinatura' : undefined}
           settings={settings}
           onSelectMode={handleSelectMode}
           onResetSettings={handleResetSettings}

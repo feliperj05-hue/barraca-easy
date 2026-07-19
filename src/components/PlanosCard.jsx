@@ -6,6 +6,7 @@ import {
   diasRestantesDeTeste,
 } from '../services/subscriptionService.js'
 import { formatBRL } from '../utils/money.js'
+import { clearSelectedPlan, readSelectedPlan } from '../services/selectedPlan.js'
 
 // Escolha de plano pelo proprio dono (#96).
 //
@@ -20,6 +21,7 @@ import { formatBRL } from '../utils/money.js'
 export default function PlanosCard({ subscription, onContratou, notify }) {
   const [planos, setPlanos] = useState([])
   const [pix, setPix] = useState(null)
+  const [preselecionado] = useState(() => readSelectedPlan())
   const [busy, setBusy] = useState('')
   const [erro, setErro] = useState('')
   const [escolhido, setEscolhido] = useState(null)
@@ -46,6 +48,9 @@ export default function PlanosCard({ subscription, onContratou, notify }) {
     try {
       const r = await contratarPlano(subscription.tenant_id, codigo)
       setEscolhido(r)
+      // O plano vindo do site comercial ja cumpriu o papel: some com ele para
+      // o app nao reabrir em Minha assinatura no proximo login (#111).
+      clearSelectedPlan()
       if (notify) notify('Plano escolhido. Agora é só pagar por Pix.')
       if (onContratou) await onContratou()
     } catch (e) {
@@ -78,7 +83,7 @@ export default function PlanosCard({ subscription, onContratou, notify }) {
         {planos.map((p) => {
           const atual = p.codigo === subscription.plano
           return (
-            <div key={p.codigo} className={'plano-item' + (atual ? ' plano-atual' : '')}>
+            <div key={p.codigo} className={'plano-item' + (atual ? ' plano-atual' : '') + (preselecionado === p.codigo ? ' plano-preselecionado' : '')}>
               <div className="plano-cabeca">
                 <strong>{p.nome}</strong>
                 <span className="plano-valor">{formatBRL(p.valor_mensal)}/mês</span>
@@ -95,7 +100,7 @@ export default function PlanosCard({ subscription, onContratou, notify }) {
                 disabled={atual || busy === p.codigo}
                 onClick={() => escolher(p.codigo)}
               >
-                {atual ? 'Plano atual' : busy === p.codigo ? 'Escolhendo...' : 'Escolher este'}
+                {atual ? 'Plano atual' : busy === p.codigo ? 'Escolhendo...' : preselecionado === p.codigo ? 'Confirmar plano escolhido' : 'Escolher este'}
               </button>
             </div>
           )
