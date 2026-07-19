@@ -20,7 +20,7 @@ globalThis.localStorage = {
   removeItem: (k) => store.delete(k),
 }
 
-const { anotar, listarNotas, apagarNota, limparNotas, montarDiagnostico, CATEGORIAS } =
+const { anotar, listarNotas, apagarNota, limparNotas, montarDiagnostico, TIPOS } =
   await import('../src/services/pilotLog.js')
 
 const passos = []
@@ -55,7 +55,7 @@ ok('Texto opcional e preservado', lista[0].texto === 'a senha 012 saiu repetida'
 const relatorioCategorias = await montarDiagnostico({})
 ok(
   'Categorias aparecem por extenso, nao por codigo',
-  CATEGORIAS.every((c) => c.label.length > 3) &&
+  TIPOS.every((c) => c.label.length > 3) &&
     relatorioCategorias.includes('Problema com a senha'),
 )
 
