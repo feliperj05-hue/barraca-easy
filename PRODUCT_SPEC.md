@@ -87,6 +87,51 @@ O Barraca Easy digitaliza o fluxo sem exigir mudança radical da operação.
 - Fechamento considera vendas confirmadas e não canceladas.
 - O modo padrão é `cashier_production_sync`.
 
+## Cancelamento da assinatura (#115)
+
+O dono cancela sozinho, dentro do app, sem falar com ninguém.
+
+**Onde fica:** Configurações → Minha assinatura, como link de texto discreto no
+fim do cartão. Discreto, não escondido — rótulo literal ("Cancelar
+assinatura"), a dois toques da tela inicial, sem submenu.
+
+**Paridade de passos (regra inegociável):** cancelar não pode passar de
+contratar + 1 toque.
+
+| Fluxo | Toques | Caminho |
+|---|---|---|
+| Contratar | 3 | engrenagem → Minha assinatura → Escolher este |
+| Cancelar | 4 | engrenagem → Minha assinatura → Cancelar assinatura → Sim, cancelar |
+
+O toque extra do cancelamento é a confirmação, e ela existe porque cancelar é
+destrutivo e contratar não. `npm run cancelamento` mede isso e falha se o teto
+for estourado.
+
+**Proibido no caminho de saída:** motivo obrigatório, tela de retenção, oferta
+de desconto, "fale com o suporte", confirmação datilografada, segundo diálogo.
+
+**Fluxo único para teste e para assinatura paga.** O que muda é o efeito, e
+quem decide o efeito é o banco:
+
+- **em teste:** encerra na hora. Nada foi cobrado, nada a devolver.
+- **assinatura paga:** a barraca funciona até o fim do período já pago, e só
+  depois é encerrada. Nenhuma cobrança nova; as que estiverem em aberto são
+  canceladas. A tela diz a data antes de o dono confirmar.
+- **suspensa:** encerra na hora (já não operava).
+- **já cancelada:** não faz nada e não dá erro.
+
+Manter a vigência até o fim do período pago é decisão de produto, não detalhe:
+o cliente usa o que pagou, então **não há valor a estornar no caso comum**.
+Estorno e devolução não existem no sistema e dependem de posição jurídica ainda
+em aberto.
+
+**Trilha auditável.** Toda contratação e todo cancelamento gravam em
+`assinatura_eventos`: quem pediu (usuário e e-mail congelado no momento),
+quando, de qual plano e por qual tela. A tabela é append-only — não tem policy
+de update nem de delete, para ninguém.
+
+**Quem pode:** só o dono. Operador não encerra o contrato da barraca.
+
 ## Status de pedido
 
 - `aguardando`: pedido criado e aguardando produção/chamada.

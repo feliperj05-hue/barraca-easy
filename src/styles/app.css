@@ -3045,3 +3045,83 @@ button:disabled {
   border: 2px solid var(--cor-acao);
   box-shadow: 0 0 0 3px var(--cor-acao-tint);
 }
+
+/* Cancelamento self-service (#115).
+   ------------------------------------------------------------------
+   O link e DISCRETO: texto simples, tamanho menor, cor de texto suave.
+   Nao e botao, nao tem fundo, nao disputa atencao com a escolha de plano.
+
+   Mas DISCRETO NAO E ESCONDIDO. Ele mantem sublinhado (afordancia de link,
+   pra quem bate o olho saber que clica), rotulo literal, e alvo de toque de
+   44px de altura minima — no tablet do balcao, alvo menor que isso e alvo que
+   erra, e alvo que erra vira "nao consegui cancelar".
+
+   A cor e --cor-texto-suave (5.3:1 na areia), nao o cinza --cor-cinza, que
+   reprova em contraste (2.69:1) e foi barrado na #71. */
+.assinatura-cancelar {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--cor-borda);
+  text-align: center;
+}
+
+.link-discreto {
+  background: none;
+  border: 0;
+  padding: 12px 8px;
+  min-height: 44px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--cor-texto-suave);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link-discreto:hover,
+.link-discreto:focus-visible {
+  color: var(--cor-texto);
+}
+
+/* Cancelamento pedido mas ainda nao valendo: aviso, nao alarme. A barraca
+   segue funcionando, entao usa o tom de atencao e nao o de perigo. */
+.aviso-cancelamento {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--cor-atencao-tint);
+  color: var(--cor-atencao-texto);
+  line-height: 1.45;
+}
+
+.cancelar-modal {
+  max-width: 520px;
+}
+
+.cancelar-modal .cancelar-efeito {
+  margin: 10px 0 0;
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.cancelar-motivo {
+  display: block;
+  margin-top: 16px;
+}
+
+.cancelar-motivo > span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--cor-texto-suave);
+  font-size: 15px;
+}
+
+.cancelar-motivo textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: 10px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  font: inherit;
+  resize: vertical;
+}

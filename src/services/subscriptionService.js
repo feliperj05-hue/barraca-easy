@@ -231,6 +231,112 @@ export async function meuStatus() {
   return Array.isArray(data) ? data[0] || null : data || null
 }
 
+// --- Cancelamento self-service (#115) ----------------------------------
+//
+// Origem do pedido. Vai junto para a trilha responder "por qual tela" — sem
+// isso nao da para demonstrar por onde o cliente conseguiu cancelar.
+export const ORIGEM_CANCELAMENTO = 'app:configuracoes/minha-assinatura'
+
+// Ha um cancelamento pedido que ainda nao chegou na data de valer?
+export function cancelamentoAgendado(sub) {
+  if (!sub || !sub.cancelamento_efetivo_em) return false
+  if (sub.status_assinatura === 'cancelada') return false
+  return diasAte(sub.cancelamento_efetivo_em) >= 0
+}
+
+// Diferenca em DIAS DE CALENDARIO, nao em horas. Mesma armadilha do
+// `diasRestantesDeTeste`: a conta ingenua com timestamp erra em um dia porque
+// as horas que faltam para acabar hoje entram no resultado.
+function diasAte(data) {
+  const partes = String(data).slice(0, 10).split('-').map(Number)
+  const [ano, mes, dia] = partes
+  if (!ano || !mes || !dia) return NaN
+  const alvo = new Date(ano, mes - 1, dia)
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+  return Math.round((alvo.getTime() - hoje.getTime()) / 86400000)
+}
+
+// O que vai acontecer se o dono cancelar AGORA. A tela precisa disso ANTES da
+// confirmacao: mandar alguem confirmar sem saber se perde o acesso na hora ou
+// no fim do mes ja pago e esconder a informacao que mais importa.
+//
+// Espelha a regra da RPC `cancelar_minha_assinatura`. A decisao continua sendo
+// do banco — isto aqui e so a previsao mostrada ao usuario. Se as duas
+// discordarem, quem manda e o banco, e a tela mostra o resultado que voltou.
+export function previsaoDeCancelamento(sub) {
+  if (!sub) return null
+  if (sub.status_assinatura === 'cancelada') {
+    return { imediato: true, ate: null, texto: 'Esta assinatura já está cancelada.' }
+  }
+  if (sub.status_assinatura === 'teste') {
+    return {
+      imediato: true,
+      ate: null,
+      texto:
+        'Você está no período de teste e nada foi cobrado. O acesso é encerrado agora ' +
+        'e não há nada a pagar nem a devolver.',
+    }
+  }
+  const fim = sub.fim_periodo_pago
+  if (sub.status_assinatura === 'ativa' && fim && diasAte(fim) >= 0) {
+    return {
+      imediato: false,
+      ate: fim,
+      texto:
+        `Sua barraca continua funcionando normalmente até ${dataBR(fim)}, que é o fim do ` +
+        'período que você já pagou. Depois dessa data o acesso é encerrado. ' +
+        'Nenhuma cobrança nova é gerada, e as que estiverem em aberto são canceladas.',
+    }
+  }
+  return {
+    imediato: true,
+    ate: null,
+    texto:
+      'O acesso é encerrado agora. Não há período pago em aberto, então não há ' +
+      'cobrança nova nem valor a devolver. Seu histórico continua salvo.',
+  }
+}
+
+function dataBR(iso) {
+  if (!iso) return ''
+  const [a, m, d] = String(iso).slice(0, 10).split('-')
+  return `${d}/${m}/${a}`
+}
+
+// Cancelar de verdade. `motivo` e OPCIONAL de proposito: exigir motivo para
+// deixar sair e atrito disfarcado de pesquisa, e deixaria cancelar mais
+// dificil que contratar — que e exatamente o que a regra proibe.
+export async function cancelarMinhaAssinatura(tenantId, motivo = '') {
+  if (!isSupabaseConfigured) {
+    throw new Error('Este aparelho está no modo local, sem conta na nuvem.')
+  }
+  const { data, error } = await supabase.rpc('cancelar_minha_assinatura', {
+    p_tenant_id: tenantId,
+    p_motivo: motivo || null,
+    p_origem: ORIGEM_CANCELAMENTO,
+  })
+  if (error) throw error
+  const r = Array.isArray(data) ? data[0] || null : data || null
+  // O estado guardado localmente ficou velho no mesmo instante. Deixar o
+  // cache antigo faria a tela mostrar "ativa" depois de cancelar.
+  clearSubscriptionCache()
+  return r
+}
+
+// Historico da assinatura para o proprio dono. A RLS ja limita ao membro do
+// tenant; aqui e so leitura.
+export async function listarEventosAssinatura(tenantId) {
+  if (!isSupabaseConfigured || !tenantId) return []
+  const { data, error } = await supabase
+    .from('assinatura_eventos')
+    .select('id, tipo, email, plano_nome, origem, status_antes, status_depois, efetivo_em, motivo, created_at')
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data || []
+}
+
 // Cobrancas da propria barraca (o dono ve o que deve). RLS `cobrancas_select`
 // ja limita ao dono do tenant; aqui e so leitura.
 export async function listarMinhasCobrancas(tenantId) {
