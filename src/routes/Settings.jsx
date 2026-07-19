@@ -33,6 +33,7 @@ export default function Settings({
   vendasNoCaixa,
   onTicketModeChange,
   subscription,
+  onContratou,
 }) {
   const sections = visibleFor(SETTINGS_SECTIONS, role)
   const [active, setActive] = useState(() => (sections[0] ? sections[0].id : 'mode'))
@@ -122,7 +123,13 @@ export default function Settings({
 
           {current === 'piloto' && <PilotCard notify={notify} contexto={pilotContext} />}
 
-          {current === 'assinatura' && <SubscriptionCard subscription={subscription} />}
+          {current === 'assinatura' && (
+            <SubscriptionCard
+              subscription={subscription}
+              onContratou={onContratou}
+              notify={notify}
+            />
+          )}
 
           {current === 'printing' && <PrinterSettingsCard notify={notify} />}
 

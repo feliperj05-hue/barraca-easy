@@ -63,6 +63,16 @@ export async function definirStatus(tenantId, status, extras = {}) {
   return data
 }
 
+// Estende o teste de uma barraca sem abrir o SQL Editor.
+export async function estenderTeste(tenantId, dias = 7) {
+  const { data, error } = await supabase.rpc('admin_estender_teste', {
+    p_tenant_id: tenantId,
+    p_dias: dias,
+  })
+  if (error) throw error
+  return data
+}
+
 export async function listarCobrancas(tenantId = null) {
   const { data, error } = await supabase.rpc('admin_listar_cobrancas', {
     p_tenant_id: tenantId,

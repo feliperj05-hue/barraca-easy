@@ -22,6 +22,7 @@ export default function Layout({
   onLogout,
   onOpenSettings,
   rodape,
+  selo,
 }) {
   const settingsActive = current === 'settings'
 
@@ -35,6 +36,7 @@ export default function Layout({
             <p className="brand-sub">
               {tenantLabel || 'Caixa digital, senha física e fila interna.'}
             </p>
+            {selo}
           </div>
         </div>
         <ConnectionStatus />

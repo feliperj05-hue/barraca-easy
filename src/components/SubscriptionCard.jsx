@@ -7,6 +7,7 @@ import {
 } from '../services/subscriptionService.js'
 import { formatBRL } from '../utils/money.js'
 import { isSupabaseConfigured } from '../services/supabaseClient.js'
+import PlanosCard from './PlanosCard.jsx'
 
 // "Minha assinatura" em Configuracoes (#90).
 //
@@ -32,7 +33,7 @@ function competenciaBR(iso) {
   return `${m}/${a}`
 }
 
-export default function SubscriptionCard({ subscription }) {
+export default function SubscriptionCard({ subscription, onContratou, notify }) {
   const [cobrancas, setCobrancas] = useState([])
   const [erro, setErro] = useState('')
 
@@ -70,7 +71,8 @@ export default function SubscriptionCard({ subscription }) {
   const vagas = vagasRestantes(subscription)
 
   return (
-    <div className="card assinatura-card">
+    <>
+      <div className="card assinatura-card">
       <h3>Minha assinatura</h3>
 
       <dl className="assinatura-dados">
@@ -162,6 +164,9 @@ export default function SubscriptionCard({ subscription }) {
         O pagamento é feito por Pix e confirmado manualmente pelo suporte. Assim que a baixa é
         dada, a barraca volta a operar automaticamente.
       </p>
-    </div>
+      </div>
+
+      <PlanosCard subscription={subscription} onContratou={onContratou} notify={notify} />
+    </>
   )
 }
