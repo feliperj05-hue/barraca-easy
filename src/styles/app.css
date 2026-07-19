@@ -1369,6 +1369,36 @@ button:disabled {
   color: var(--cor-acao-texto);
 }
 
+/* Remover membro (#101). Alvo grande porque a tela e de tablet e dedo, mas
+   discreto na cor: e acao destrutiva rara, nao pode competir com o botao de
+   adicionar. A confirmacao do navegador segura o clique sem querer. */
+.member-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.member-remove {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cor-perigo);
+  background: var(--cor-perigo-tint);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.member-remove:hover:not(:disabled) {
+  border-color: var(--cor-perigo);
+}
+
+.member-remove:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 /* Avisos de sincronizacao (#59) — o operador precisa parar e olhar */
 .sync-alert-backdrop {
   z-index: 120; /* acima de qualquer outro modal: e o aviso mais urgente */

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext.jsx'
-import { listMembers, addMember } from '../services/authService.js'
+import { listMembers, addMember, removeMember } from '../services/authService.js'
 import { vagasRestantes, planoCheio } from '../services/subscriptionService.js'
 import { isSupabaseConfigured } from '../services/supabaseClient.js'
 import PermissionsCard from '../components/PermissionsCard.jsx'
@@ -20,6 +20,7 @@ export default function Members() {
   const [email, setEmail] = useState('')
   const [papel, setPapel] = useState('operador')
   const [busy, setBusy] = useState(false)
+  const [removendo, setRemovendo] = useState(null)
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
 
@@ -41,6 +42,31 @@ export default function Members() {
   useEffect(() => {
     reload()
   }, [reload])
+
+  // Quantos donos existem hoje: serve para nao oferecer o botao de remover ao
+  // unico dono. O banco recusa de qualquer jeito (#101), mas mostrar um botao
+  // que sempre da erro e maltratar quem usa.
+  const donos = members.filter((m) => m.papel === 'dono').length
+
+  async function handleRemove(m) {
+    const ehVoce = user && m.user_id === user.id
+    const aviso = ehVoce
+      ? 'Remover VOCE MESMO desta barraca? Voce perde o acesso na hora.'
+      : `Remover ${m.email} desta barraca? A pessoa perde o acesso na hora.`
+    if (!window.confirm(aviso)) return
+    setError('')
+    setInfo('')
+    setRemovendo(m.user_id)
+    try {
+      await removeMember(tenantId, m.user_id)
+      setInfo('Membro removido.')
+      await reload()
+    } catch (err) {
+      setError((err && err.message) || String(err))
+    } finally {
+      setRemovendo(null)
+    }
+  }
 
   async function handleAdd(e) {
     e.preventDefault()
@@ -161,7 +187,19 @@ export default function Members() {
                     <span className="member-you"> (voce)</span>
                   )}
                 </div>
-                <span className={'member-badge ' + m.papel}>{m.papel}</span>
+                <div className="member-actions">
+                  <span className={'member-badge ' + m.papel}>{m.papel}</span>
+                  {!(m.papel === 'dono' && donos <= 1) && (
+                    <button
+                      type="button"
+                      className="member-remove"
+                      onClick={() => handleRemove(m)}
+                      disabled={removendo === m.user_id}
+                    >
+                      {removendo === m.user_id ? 'Removendo...' : 'Remover'}
+                    </button>
+                  )}
+                </div>
               </div>
             ))
           )}
