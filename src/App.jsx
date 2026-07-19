@@ -12,6 +12,7 @@ import TrialBanner from './components/TrialBanner.jsx'
 import TrialBadge from './components/TrialBadge.jsx'
 import Admin from './routes/Admin.jsx'
 import { souAdmin } from './services/adminService.js'
+import { useScreenRoute } from './services/router.js'
 import { useAuth } from './auth/AuthContext.jsx'
 import { setTicketWidth, TICKET_WIDTH_AUTO, TICKET_WIDTH_MANUAL } from './utils/tickets.js'
 import { getTicketMode, isAutoTicket } from './services/settingsService.js'
@@ -91,7 +92,11 @@ export default function App() {
   }, [session])
   const canOpenSettings = canAccess(SETTINGS_SCREEN, role)
 
-  const [screen, setScreen] = useState('cashier')
+  // Navegacao por URL (#107). `useScreenRoute` devolve o mesmo par
+  // [valor, setter] do useState que estava aqui, entao todo o resto
+  // deste arquivo (inclusive `onNavigate` e os `setScreen('settings')`)
+  // continua identico — de proposito, com o piloto para rodar.
+  const [screen, setScreen] = useScreenRoute()
   const [orders, setOrders] = useState([])
   const [settings, setSettings] = useState(() => getSettings())
   const [menu, setMenu] = useState([])
