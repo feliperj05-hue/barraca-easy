@@ -214,3 +214,15 @@ export async function addMember(tenantId, email, papel) {
   if (error) throw error
   return data
 }
+
+// Dono remove um membro do tenant (#101). O banco recusa remover o ultimo
+// dono — inclusive o proprio dono tentando sair —, para a barraca nunca ficar
+// orfa: dados vivos e ninguem capaz de configurar nem readicionar membro.
+export async function removeMember(tenantId, userId) {
+  const { error } = await requireClient().rpc('remove_member', {
+    p_tenant_id: tenantId,
+    p_user_id: userId,
+  })
+  if (error) throw error
+  return true
+}
