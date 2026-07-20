@@ -205,6 +205,28 @@ const confirmacoes = (dialogHtml.match(/Sim, cancelar assinatura/g) || []).lengt
 checa(confirmacoes === 1, 'existe exatamente UMA confirmacao, nao uma cascata')
 
 // ---------------------------------------------------------------------
+// Natureza do pedido (#122): escolha opcional, no MESMO passo
+// ---------------------------------------------------------------------
+console.log('\nNatureza do pedido (resilicao x arrependimento) — #122')
+checa(
+  dialogHtml.includes('name="cancelar-natureza"'),
+  'existe escolha de natureza (resilicao/arrependimento) dentro do proprio dialogo',
+)
+checa(
+  !/<input[^>]*name="cancelar-natureza"[^>]*required/.test(dialogHtml),
+  'a escolha de natureza nao e obrigatoria (sem required no radio)',
+)
+checa(
+  /Qual frase combina mais[^<]*\(opcional\)/.test(t),
+  'a escolha de natureza esta rotulada como opcional, em texto',
+)
+// A escolha vive no MESMO dialogo do passo 4 — nao cria passo novo.
+checa(
+  PASSOS_CANCELAR === PASSOS_CONTRATAR + 1,
+  'natureza nao criou um passo a mais no caminho de saida',
+)
+
+// ---------------------------------------------------------------------
 // Os dois casos (teste e paga) usam o MESMO caminho
 // ---------------------------------------------------------------------
 console.log('\nFluxo unico para teste e para assinatura paga')

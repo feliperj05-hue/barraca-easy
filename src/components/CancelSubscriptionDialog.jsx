@@ -22,6 +22,10 @@ import { previsaoDeCancelamento } from '../services/subscriptionService.js'
 // destrutivo e contratar nao. Qualquer coisa acrescentada aqui estoura o teto.
 export default function CancelSubscriptionDialog({ subscription, onConfirm, onClose, busy }) {
   const [motivo, setMotivo] = useState('')
+  // Natureza declarada pelo cliente (#122): 'resilicao' ou 'arrependimento'.
+  // Comeca vazia de proposito -- nao marcar nada por padrao e a unica forma
+  // de nao inventar uma declaracao que o cliente nao fez.
+  const [natureza, setNatureza] = useState('')
   const previsao = previsaoDeCancelamento(subscription)
 
   return (
@@ -45,6 +49,37 @@ export default function CancelSubscriptionDialog({ subscription, onConfirm, onCl
           pelo cancelamento.
         </p>
 
+        {/* Escolha OPCIONAL (#122). Serve so pra deixar registrado o que o
+            cliente quis dizer com o pedido de saida -- NAO muda o efeito do
+            cancelamento (o periodo ja pago continua rodando igual nos dois
+            casos, porque a devolucao ainda nao existe) e NAO trava o botao
+            se ficar sem marcar. */}
+        <fieldset className="cancelar-natureza">
+          <legend>
+            Qual frase combina mais com o motivo? <em>(opcional)</em>
+          </legend>
+          <label>
+            <input
+              type="radio"
+              name="cancelar-natureza"
+              value="resilicao"
+              checked={natureza === 'resilicao'}
+              onChange={() => setNatureza('resilicao')}
+            />
+            Só quero parar de usar daqui pra frente
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="cancelar-natureza"
+              value="arrependimento"
+              checked={natureza === 'arrependimento'}
+              onChange={() => setNatureza('arrependimento')}
+            />
+            Me arrependi da contratação
+          </label>
+        </fieldset>
+
         <label className="cancelar-motivo" htmlFor="cancelar-motivo">
           <span>
             Quer contar o motivo? <em>(opcional — pode deixar em branco)</em>
@@ -67,7 +102,7 @@ export default function CancelSubscriptionDialog({ subscription, onConfirm, onCl
             type="button"
             className="btn-danger"
             disabled={busy}
-            onClick={() => onConfirm(motivo)}
+            onClick={() => onConfirm(motivo, natureza || null)}
           >
             {busy ? 'Cancelando...' : 'Sim, cancelar assinatura'}
           </button>
