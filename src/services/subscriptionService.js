@@ -307,7 +307,13 @@ function dataBR(iso) {
 // Cancelar de verdade. `motivo` e OPCIONAL de proposito: exigir motivo para
 // deixar sair e atrito disfarcado de pesquisa, e deixaria cancelar mais
 // dificil que contratar — que e exatamente o que a regra proibe.
-export async function cancelarMinhaAssinatura(tenantId, motivo = '') {
+//
+// `natureza` (#122) e TAMBEM opcional, e pelo mesmo motivo: 'resilicao'
+// (parar daqui pra frente) ou 'arrependimento' (desfazer a contratacao).
+// Manda sempre explicito (mesmo vazio) para NAO cair no default do banco —
+// aqui, sem escolha do cliente, a trilha grava null (nao declarada), que e
+// diferente de assumir 'resilicao' por ele.
+export async function cancelarMinhaAssinatura(tenantId, motivo = '', natureza = null) {
   if (!isSupabaseConfigured) {
     throw new Error('Este aparelho está no modo local, sem conta na nuvem.')
   }
@@ -315,6 +321,7 @@ export async function cancelarMinhaAssinatura(tenantId, motivo = '') {
     p_tenant_id: tenantId,
     p_motivo: motivo || null,
     p_origem: ORIGEM_CANCELAMENTO,
+    p_natureza: natureza || null,
   })
   if (error) throw error
   const r = Array.isArray(data) ? data[0] || null : data || null

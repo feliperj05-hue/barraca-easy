@@ -78,11 +78,11 @@ export default function SubscriptionCard({ subscription, onContratou, notify }) 
   const jaCancelada = subscription.status_assinatura === 'cancelada'
   const agendado = cancelamentoAgendado(subscription)
 
-  async function confirmarCancelamento(motivo) {
+  async function confirmarCancelamento(motivo, natureza) {
     setErroCancelar('')
     setCancelando(true)
     try {
-      const r = await cancelarMinhaAssinatura(subscription.tenant_id, motivo)
+      const r = await cancelarMinhaAssinatura(subscription.tenant_id, motivo, natureza)
       setConfirmando(false)
       // Mensagem construida a partir do que o BANCO devolveu, nao do que a
       // tela previu. Se os dois discordarem, quem conta a verdade e o banco.

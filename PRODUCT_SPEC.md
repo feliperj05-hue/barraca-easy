@@ -130,6 +130,23 @@ em aberto.
 quando, de qual plano e por qual tela. A tabela é append-only — não tem policy
 de update nem de delete, para ninguém.
 
+**Natureza do pedido de saída (#122).** No mesmo diálogo de confirmação, o
+dono pode dizer, de forma **opcional**, se o pedido é:
+
+- **resilição** — só quer parar de usar daqui pra frente;
+- **arrependimento** — quer desfazer a contratação (dentro da janela de
+  reflexão).
+
+Não escolher nada não trava o botão nem muda o efeito do cancelamento — os
+dois casos continuam funcionando até o fim do período já pago, porque a
+devolução ainda não existe no sistema (depende de posição jurídica em aberto).
+A escolha só existe para a trilha provar, depois, qual dos dois o cliente
+disse que era. `assinatura_eventos.natureza` grava a declaração
+(`resilicao`/`arrependimento`/`null` = não declarada, sem invenção
+retroativa), junto com o fato objetivo (`contratacao_em`,
+`dias_desde_contratacao`) que permite aplicar qualquer prazo legal que vier a
+ser fixado, sem depender de migration nova.
+
 **Quem pode:** só o dono. Operador não encerra o contrato da barraca.
 
 ## Status de pedido
