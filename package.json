@@ -24,6 +24,7 @@
     "rotas-navegador": "node scripts/rotas-navegador.mjs",
     "telas": "node scripts/telas.mjs",
     "cancelamento": "node scripts/cancelamento.mjs",
+    "aviso-fiscal": "node scripts/aviso-fiscal.mjs",
     "previa-site": "node scripts/gerar-previa-site.mjs",
     "verifica-publicado": "node scripts/verifica-publicado.mjs"
   },

@@ -8,6 +8,8 @@
 // vai em corpo ampliado e centralizada, antes de qualquer detalhe.
 
 import { formatBRL } from '../utils/money.js'
+import { AVISO_SEM_VALIDADE_FISCAL } from './fiscalNotice.js'
+import { columnsFor } from './escpos.js'
 
 function formatDateTime(value) {
   const d = value ? new Date(value) : new Date()
@@ -30,6 +32,42 @@ function formatDateTime(value) {
 function shortId(id) {
   const s = String(id || '')
   return s.length > 6 ? s.slice(-6).toUpperCase() : s.toUpperCase()
+}
+
+// O aviso legal quebrado em linhas equilibradas para o papel.
+//
+// No papel de 80 mm (48 colunas) ele cabe numa linha so. No de 58 mm (32) nao
+// cabe, e a quebra automatica encheria a primeira linha e deixaria "fiscal"
+// sozinho embaixo — nao esta errado, mas fica feio e o aviso perde peso. Aqui
+// a gente procura o espaco mais proximo do meio da frase e corta ali. Se nem
+// assim couber (papel exotico), devolve a frase inteira e deixa o renderizador
+// quebrar por palavra, que nunca corta palavra no meio.
+function linhasDoAviso(paperWidth) {
+  const largura = columnsFor(paperWidth)
+  if (AVISO_SEM_VALIDADE_FISCAL.length <= largura) return [AVISO_SEM_VALIDADE_FISCAL]
+  const palavras = AVISO_SEM_VALIDADE_FISCAL.split(' ')
+  let melhor = null
+  for (let i = 1; i < palavras.length; i += 1) {
+    const cima = palavras.slice(0, i).join(' ')
+    const baixo = palavras.slice(i).join(' ')
+    if (cima.length > largura || baixo.length > largura) continue
+    const desnivel = Math.abs(cima.length - baixo.length)
+    if (!melhor || desnivel < melhor.desnivel) melhor = { cima, baixo, desnivel }
+  }
+  return melhor ? [melhor.cima, melhor.baixo] : [AVISO_SEM_VALIDADE_FISCAL]
+}
+
+// Compara dois textos ignorando caixa, acento e espaco sobrando. Serve so
+// para nao imprimir a mesma frase duas vezes.
+function mesmoTexto(a, b) {
+  const limpa = (t) =>
+    String(t || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim()
+  return limpa(a) === limpa(b)
 }
 
 // Monta o documento do cupom. `printer` vem do printerService (config salva).
@@ -71,9 +109,18 @@ export function buildReceipt(order, printer = {}) {
     blocks.push({ type: 'text', value: 'Pagamento: ' + order.payment, align: 'right' })
   }
 
-  if (footer) {
-    blocks.push({ type: 'divider' })
+  // Rodape do cupom. O aviso legal (#128) sai SEMPRE, com ou sem rodape
+  // configurado pelo dono, e por ultimo: e a ultima coisa que o cliente le
+  // antes de guardar o papel no bolso. Em size 1 ele respeita a largura do
+  // papel (32 colunas no 58 mm, 48 no 80 mm) e o wrapText quebra por palavra,
+  // entao nunca parte no meio de uma palavra.
+  blocks.push({ type: 'divider' })
+  // Dono que ja tinha colado o aviso no rodape nao faz o cupom repetir a frase.
+  if (footer && !mesmoTexto(footer, AVISO_SEM_VALIDADE_FISCAL)) {
     blocks.push({ type: 'text', value: footer, align: 'center' })
+  }
+  for (const linha of linhasDoAviso(printer.paperWidth)) {
+    blocks.push({ type: 'text', value: linha, align: 'center' })
   }
 
   blocks.push({ type: 'feed', lines: 2 })

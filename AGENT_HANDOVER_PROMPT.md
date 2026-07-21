@@ -161,6 +161,11 @@ Arquitetura implementada:
   ou texto de pré-visualização. Sem navegador, sem React.
 - `src/services/receiptLayout.js` — monta o cupom a partir do pedido real do
   app, com a senha em corpo ampliado.
+- `src/services/fiscalNotice.js` — **único** lugar onde mora o texto
+  "Este documento não tem validade fiscal" (#128). Todo layout impresso novo
+  (comanda de produção, 2ª via, o que vier) importa daqui em vez de repetir a
+  frase. O cupom imprime esse aviso sempre, no rodapé, mesmo se o dono apagar
+  o rodapé dele nas Configurações. Guarda: `npm run aviso-fiscal`.
 - `src/services/printerService.js` — WebUSB (detecção de suporte, pareamento,
   envio) + configuração da impressora em `localStorage`.
 - `src/components/PrinterSettingsCard.jsx` — tela de configuração com prévia do
