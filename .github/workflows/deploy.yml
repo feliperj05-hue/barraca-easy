@@ -88,6 +88,7 @@ jobs:
           npm run rotas
           npm run diario-piloto
           npm run assinatura
+          npm run aviso-fiscal
 
       - name: Resolver ambiente alvo
         id: target
