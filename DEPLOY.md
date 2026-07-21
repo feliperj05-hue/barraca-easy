@@ -72,15 +72,23 @@ proprio pipeline faz essa checagem no step "Verificar bundle publicado (por
 conteudo)" e **falha o run** se o canal continuar servindo outro commit depois
 de 6 tentativas — CI verde passou a significar deploy publicado de verdade.
 
-**Jeito manual (marcador dentro do bundle),** util para conferir uma feature
-especifica:
+**Jeito completo (script, desde #124):** `scripts/verifica-publicado.mjs` baixa o
+que o canal esta servindo e prova por conteudo. E o mesmo script que o pipeline
+roda — nao existe "verificacao do CI" diferente da sua:
 
 ```bash
-BUNDLE=$(curl -s https://barraca-easy.web.app/ | grep -o '/assets/index-[^"]*\.js' | head -1)
-curl -s "https://barraca-easy.web.app$BUNDLE" > /tmp/bundle.js
-wc -c /tmp/bundle.js
-grep -c -i "usb" /tmp/bundle.js   # esperado: > 0 desde a impressora (#63)
+npm run verifica-publicado -- https://barraca-easy.web.app
+npm run verifica-publicado -- https://barraca-easy.web.app --sha=<commit>
+npm run verifica-publicado -- https://barraca-easy.web.app --marcador=MarketingSite
 ```
+
+Ele confere, nesta ordem: `version.json` (e o `--sha`, se voce passar), o
+`index.html` publicado, e o **bundle de entrada existindo de verdade** — status
+200 **e** content-type de JavaScript. Esse ultimo detalhe nao e frescura: o
+rewrite de SPA (`** -> /index.html`) devolve **200 + HTML** para arquivo que nao
+existe, entao `curl -o /dev/null -w %{http_code}` sempre diz 200, publicado ou
+nao. Com `--marcador` da pra exigir uma string do commit dentro do bundle, que
+foi como a #124 foi diagnosticada na mao.
 
 Sem `FIREBASE_SERVICE_ACCOUNT`, o pipeline so valida lint/build (nao publica, nao
 falha). Se faltar VARIABLE do Supabase do ambiente alvo, o build **falha de
@@ -102,6 +110,15 @@ Duas armadilhas que ja morderam o projeto:
    do ar por horas — aconteceu com #102/#103 e antes com a impressora (#67). O
    step "Avisar se a producao esta atrasada" compara o `version.json` de producao
    com o HEAD da main e emite um warning + resumo no run quando ficam diferentes.
+
+   Warning em run verde, porem, ninguem le: entre 19/07 e 20/07 a main andou 15
+   commits com a producao parada em `b5ba0d8` e todo o CI verde (#124). Por isso
+   existe a **sentinela** (`.github/workflows/sentinela-producao.yml`): roda todo
+   dia as 08:30 BRT, baixa o `version.json` que a producao esta servindo e, se
+   estiver atras da main, **abre/atualiza uma issue** listando os commits fora do
+   ar e **falha o run** — falha de workflow agendado o GitHub manda por e-mail.
+   Quando a producao alcanca a main, a sentinela fecha a issue sozinha. Da para
+   rodar na mao em Actions > Sentinela de producao > Run workflow.
 
 Para publicar producao, veja "Deploy manual" abaixo.
 

@@ -24,7 +24,8 @@
     "rotas-navegador": "node scripts/rotas-navegador.mjs",
     "telas": "node scripts/telas.mjs",
     "cancelamento": "node scripts/cancelamento.mjs",
-    "previa-site": "node scripts/gerar-previa-site.mjs"
+    "previa-site": "node scripts/gerar-previa-site.mjs",
+    "verifica-publicado": "node scripts/verifica-publicado.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",

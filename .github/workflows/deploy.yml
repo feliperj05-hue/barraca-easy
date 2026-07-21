@@ -165,10 +165,12 @@ jobs:
           projectId: ${{ vars.FIREBASE_PROJECT_ID }}
           channelId: live
 
-      # CI verde nao e prova de deploy (#104). Baixa o version.json que o
-      # canal esta SERVINDO e exige que o sha bata com o commit deste run.
-      # Sem isso, publicacao fora de ordem ou deploy que nao pegou passam
-      # despercebidos.
+      # CI verde nao e prova de deploy (#104, #124). Este passo baixa o que o
+      # canal esta SERVINDO e exige: (a) o version.json carimbado com o commit
+      # deste run e (b) que o bundle de entrada do index.html publicado exista
+      # de verdade, com content-type de JavaScript. O (b) importa porque o
+      # rewrite de SPA devolve 200 + HTML para arquivo inexistente — "deu 200"
+      # nunca provou publicacao.
       - name: Verificar bundle publicado (por conteudo)
         if: ${{ github.event_name != 'pull_request' && env.FIREBASE_SERVICE_ACCOUNT != '' }}
         run: |
@@ -182,20 +184,8 @@ jobs:
             echo "::error::URL do canal vazia; nao da para verificar o que foi publicado."
             exit 1
           fi
-          echo "Verificando $BASE/version.json"
-          SHA=""
-          for i in 1 2 3 4 5 6; do
-            SERVIDO=$(curl -fsS -H 'Cache-Control: no-cache' "$BASE/version.json" || echo '')
-            SHA=$(printf '%s' "$SERVIDO" | jq -r '.sha // empty' 2>/dev/null || echo '')
-            if [ "$SHA" = "${{ github.sha }}" ]; then
-              echo "OK: canal servindo ${{ github.sha }}"
-              exit 0
-            fi
-            echo "tentativa $i: servido='$SHA' esperado='${{ github.sha }}' (aguardando propagacao)"
-            sleep 10
-          done
-          echo "::error::O canal continua servindo '$SHA' e nao o commit ${{ github.sha }} deste run."
-          exit 1
+          node scripts/verifica-publicado.mjs "$BASE" \
+            --sha=${{ github.sha }} --tentativas=6 --intervalo=10
 
       # Depois de publicar staging, avisa se producao ficou para tras. Foi
       # esse silencio que deixou #102/#103 mergeados e fora do ar (e antes
