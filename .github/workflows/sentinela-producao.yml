@@ -1,0 +1,120 @@
+name: Sentinela de producao
+
+# Por que isso existe (issue #124).
+#
+# Push na main publica STAGING; producao so sai por dispatch. E de proposito.
+# O problema e que o unico aviso de "producao ficou para tras" era um
+# ::warning no resumo do run do deploy — ninguem le resumo de run verde.
+# Resultado: entre 19/07 e 20/07 a main andou 15 commits e a producao ficou
+# parada em b5ba0d8, com todo o CI verde. Ja tinha acontecido igual na #67 e
+# na #102/#103.
+#
+# Esta sentinela troca o sussurro por grito: roda todo dia, baixa o que a
+# producao esta SERVINDO (nao o que o CI diz), e se estiver atrasada ela
+# abre/atualiza uma issue e FALHA o run — falha de workflow agendado o GitHub
+# manda por e-mail para o dono do repo.
+
+on:
+  schedule:
+    - cron: '30 11 * * *'   # 08:30 BRT, antes da rodada do agente (13h UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  conferir:
+    runs-on: ubuntu-latest
+    env:
+      TITULO: 'Sentinela: producao atrasada em relacao a main'
+    steps:
+      - name: Checkout (historico completo para listar o que falta)
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Ler o que a producao esta servindo
+        id: prod
+        run: |
+          set -uo pipefail
+          BASE="https://${{ vars.FIREBASE_PROJECT_ID }}.web.app"
+          SERVIDO=$(curl -fsS -H 'Cache-Control: no-cache' "$BASE/version.json" || echo '')
+          SHA=$(printf '%s' "$SERVIDO" | jq -r '.sha // empty' 2>/dev/null || echo '')
+          QUANDO=$(printf '%s' "$SERVIDO" | jq -r '.built_at // empty' 2>/dev/null || echo '')
+          echo "base=$BASE"       >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA"         >> "$GITHUB_OUTPUT"
+          echo "built_at=$QUANDO" >> "$GITHUB_OUTPUT"
+          echo "Producao serve '${SHA:-desconhecido}' (build $QUANDO); main esta em ${{ github.sha }}"
+
+      - name: Provar por conteudo o que esta publicado
+        run: node scripts/verifica-publicado.mjs "${{ steps.prod.outputs.base }}"
+
+      - name: Comparar com a main e cobrar se estiver atrasada
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROD_SHA: ${{ steps.prod.outputs.sha }}
+          PROD_BUILT: ${{ steps.prod.outputs.built_at }}
+          MAIN_SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          API="https://api.github.com/repos/$REPO"
+          AUTH="Authorization: Bearer $GH_TOKEN"
+
+          if [ "$PROD_SHA" = "$MAIN_SHA" ]; then
+            echo "Producao em dia com a main ($MAIN_SHA)." | tee -a "$GITHUB_STEP_SUMMARY"
+            # fecha a cobranca antiga, se houver
+            NUM=$(curl -fsS -H "$AUTH" "$API/issues?state=open&labels=deployment&per_page=100" \
+                  | jq -r --arg t "$TITULO" '[.[] | select(.title==$t)][0].number // empty')
+            if [ -n "$NUM" ]; then
+              jq -n '{state:"closed", state_reason:"completed"}' > /tmp/fechar.json
+              curl -fsS -X PATCH -H "$AUTH" -d @/tmp/fechar.json "$API/issues/$NUM" > /dev/null
+              echo "Issue #$NUM fechada: producao alcancou a main."
+            fi
+            exit 0
+          fi
+
+          # o que exatamente esta fora do ar
+          if [ -n "$PROD_SHA" ] && git cat-file -e "$PROD_SHA^{commit}" 2>/dev/null; then
+            FALTAM=$(git log --oneline --no-decorate "$PROD_SHA..$MAIN_SHA" | sed 's/^/- /')
+            QUANTOS=$(git rev-list --count "$PROD_SHA..$MAIN_SHA")
+          else
+            FALTAM="- (o commit publicado nao esta no historico da main)"
+            QUANTOS="?"
+          fi
+
+          {
+            echo "## Producao ATRASADA"
+            echo ""
+            echo "- main: \`$MAIN_SHA\`"
+            echo "- producao servindo: \`${PROD_SHA:-desconhecido}\` (build ${PROD_BUILT:-?})"
+            echo "- commits fora do ar: $QUANTOS"
+            echo ""
+            echo "$FALTAM"
+            echo ""
+            echo "Publicar: Actions > CI + Deploy > Run workflow (environment=production),"
+            echo "ou \`repository_dispatch\` do tipo \`deploy-production\`."
+            echo ""
+            echo "Antes de publicar, confira se as migrations que o codigo novo exige"
+            echo "ja foram aplicadas no Supabase de PRODUCAO. Frontend novo com RPC"
+            echo "faltando no banco vira erro na mao do cliente."
+          } > /tmp/corpo.md
+          cat /tmp/corpo.md >> "$GITHUB_STEP_SUMMARY"
+
+          jq -n --arg t "$TITULO" --rawfile b /tmp/corpo.md \
+             '{title:$t, body:$b, labels:["deployment","bug"]}' > /tmp/issue.json
+
+          NUM=$(curl -fsS -H "$AUTH" "$API/issues?state=open&labels=deployment&per_page=100" \
+                | jq -r --arg t "$TITULO" '[.[] | select(.title==$t)][0].number // empty')
+          if [ -n "$NUM" ]; then
+            jq -n --rawfile b /tmp/corpo.md '{body:$b}' > /tmp/patch.json
+            curl -fsS -X PATCH -H "$AUTH" -d @/tmp/patch.json "$API/issues/$NUM" > /dev/null
+            echo "Issue #$NUM atualizada."
+          else
+            NUM=$(curl -fsS -X POST -H "$AUTH" -d @/tmp/issue.json "$API/issues" | jq -r '.number')
+            echo "Issue #$NUM aberta."
+          fi
+
+          echo "::error::Producao esta $QUANTOS commit(s) atras da main (servindo ${PROD_SHA:-desconhecido}). Ver issue #$NUM."
+          exit 1
