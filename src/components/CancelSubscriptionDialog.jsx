@@ -20,7 +20,7 @@ import { previsaoDeCancelamento } from '../services/subscriptionService.js'
 // 3 toques, sem confirmacao nenhuma. Cancelar sao 4, e o quarto e ESTE botao.
 // Um passo a mais que contratar e o teto — e ele existe porque cancelar e
 // destrutivo e contratar nao. Qualquer coisa acrescentada aqui estoura o teto.
-export default function CancelSubscriptionDialog({ subscription, onConfirm, onClose, busy }) {
+export default function CancelSubscriptionDialog({ subscription, onConfirm, onClose, busy, erro }) {
   const [motivo, setMotivo] = useState('')
   // Natureza declarada pelo cliente (#122): 'resilicao' ou 'arrependimento'.
   // Comeca vazia de proposito -- nao marcar nada por padrao e a unica forma
@@ -93,6 +93,17 @@ export default function CancelSubscriptionDialog({ subscription, onConfirm, onCl
             onChange={(e) => setMotivo(e.target.value)}
           />
         </label>
+
+        {/* #120: o erro tem que aparecer AQUI DENTRO. O paragrafo antigo vivia
+            no card, atras deste backdrop (position fixed, z-index acima) --
+            o dono tocava em cancelar, o botao voltava ao normal e nada mais
+            parecia acontecer, porque o aviso estava escondido atras do
+            proprio dialogo que continuava aberto. */}
+        {erro ? (
+          <p className="auth-error cancelar-erro" role="alert">
+            {erro}
+          </p>
+        ) : null}
 
         <div className="modal-actions">
           {/* O botao de cancelar a assinatura NAO pode depender de nada:

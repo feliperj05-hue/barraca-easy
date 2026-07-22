@@ -3148,3 +3148,9 @@ button:disabled {
   font: inherit;
   resize: vertical;
 }
+
+/* #120: erro do cancelamento visivel DENTRO do dialogo, acima dos botoes --
+   nao mais escondido atras do modal. */
+.cancelar-erro {
+  margin: 16px 0 0;
+}

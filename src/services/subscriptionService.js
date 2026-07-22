@@ -304,6 +304,29 @@ function dataBR(iso) {
   return `${d}/${m}/${a}`
 }
 
+// Traduz o erro do RPC de cancelamento para texto legivel (#120).
+//
+// Os RAISE EXCEPTION que o banco usa aqui (dono errado, barraca sumida) ja
+// saem em portugues de gente -- e.message do PostgREST e literalmente o
+// texto que a migration escreveu, entao esses casos passam direto.
+//
+// O que NAO pode vazar cru pra tela sao os dois casos tecnicos: a funcao/
+// tabela ainda nao existir no banco (migration nao aplicada -- exatamente o
+// risco que a #124 apontou pra producao) e falha de rede/transporte (fetch
+// que nem chegou a virar resposta do Postgrest, entao nem tem .code).
+const CODIGOS_MIGRATION_FALTANDO = ['42P01', '42883', 'PGRST202', 'PGRST205', 'PGRST301']
+
+export function mensagemDeErroCancelamento(e) {
+  if (!e) return 'Não deu para cancelar agora. Tente de novo.'
+  if (e.code && CODIGOS_MIGRATION_FALTANDO.includes(e.code)) {
+    return 'O cancelamento não está disponível agora. Tente novamente mais tarde ou fale com o suporte.'
+  }
+  if (!e.code && /fetch|network|failed to fetch/i.test(String(e.message || ''))) {
+    return 'Não deu para cancelar agora. Verifique sua internet e tente de novo.'
+  }
+  return (e.message && String(e.message)) || 'Não deu para cancelar agora. Tente de novo.'
+}
+
 // Cancelar de verdade. `motivo` e OPCIONAL de proposito: exigir motivo para
 // deixar sair e atrito disfarcado de pesquisa, e deixaria cancelar mais
 // dificil que contratar — que e exatamente o que a regra proibe.

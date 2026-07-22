@@ -73,13 +73,15 @@ function texto(html) {
     .replace(/\s+/g, ' ')
 }
 
-const [Layout, Settings, SubscriptionCard, PlanosCard, CancelDialog] = await Promise.all([
-  server.ssrLoadModule('/src/components/Layout.jsx'),
-  server.ssrLoadModule('/src/routes/Settings.jsx'),
-  server.ssrLoadModule('/src/components/SubscriptionCard.jsx'),
-  server.ssrLoadModule('/src/components/PlanosCard.jsx'),
-  server.ssrLoadModule('/src/components/CancelSubscriptionDialog.jsx'),
-])
+const [Layout, Settings, SubscriptionCard, PlanosCard, CancelDialog, SubscriptionService] =
+  await Promise.all([
+    server.ssrLoadModule('/src/components/Layout.jsx'),
+    server.ssrLoadModule('/src/routes/Settings.jsx'),
+    server.ssrLoadModule('/src/components/SubscriptionCard.jsx'),
+    server.ssrLoadModule('/src/components/PlanosCard.jsx'),
+    server.ssrLoadModule('/src/components/CancelSubscriptionDialog.jsx'),
+    server.ssrLoadModule('/src/services/subscriptionService.js'),
+  ])
 
 const menuProps = { products: [], onCreate() {}, onUpdate() {}, onDelete() {}, onRestore() {} }
 
@@ -174,6 +176,73 @@ const temConfirmar = checa(
 )
 
 const PASSOS_CANCELAR = [temEngrenagem, temSecao, temLink, temConfirmar].filter(Boolean).length
+
+// ---------------------------------------------------------------------
+// Erro do cancelamento tem que aparecer DENTRO do dialogo (#120)
+// ---------------------------------------------------------------------
+console.log('\nErro de cancelamento visivel (nao escondido atras do modal) — #120')
+
+const dialogComErroHtml = renderToString(
+  createElement(CancelDialog.default, {
+    subscription: assinaturaAtiva,
+    busy: false,
+    erro: 'Nao deu para cancelar agora. Tente de novo.',
+    onConfirm() {},
+    onClose() {},
+  }),
+)
+checa(
+  dialogComErroHtml.includes('Nao deu para cancelar agora. Tente de novo.') ||
+    /N.o deu para cancelar agora\. Tente de novo\./.test(texto(dialogComErroHtml)),
+  'o dialogo aceita e mostra o erro recebido por prop',
+)
+checa(
+  /role="alert"/.test(dialogComErroHtml),
+  'o erro sai marcado como role="alert" (leitor de tela avisa na hora)',
+)
+checa(
+  dialogComErroHtml.includes('Sim, cancelar assinatura'),
+  'com erro, o dialogo continua aberto com o botao de tentar de novo',
+)
+
+// Sem erro, o aviso nao aparece (nao pode virar ruido permanente na tela).
+const dialogSemErroHtml = renderToString(
+  createElement(CancelDialog.default, {
+    subscription: assinaturaAtiva,
+    busy: false,
+    erro: '',
+    onConfirm() {},
+    onClose() {},
+  }),
+)
+checa(
+  !dialogSemErroHtml.includes('cancelar-erro'),
+  'sem erro, nenhum aviso e renderizado',
+)
+
+console.log('\nTradutor de erro tecnico -> texto de gente (#120)')
+const { mensagemDeErroCancelamento } = SubscriptionService
+
+checa(
+  mensagemDeErroCancelamento({ code: 'PGRST202', message: 'Could not find function' }) !==
+    'Could not find function',
+  'erro de RPC ausente (migration nao aplicada) nao vaza o texto tecnico',
+)
+checa(
+  mensagemDeErroCancelamento({ code: '42P01', message: 'relation does not exist' }) !==
+    'relation does not exist',
+  'erro de tabela ausente nao vaza o texto tecnico',
+)
+checa(
+  /internet/i.test(mensagemDeErroCancelamento({ message: 'Failed to fetch' })),
+  'falha de rede vira aviso pra checar a internet, nao o erro cru do fetch',
+)
+checa(
+  mensagemDeErroCancelamento({ code: '42501', message: 'Apenas o dono da barraca pode cancelar a assinatura.' }) ===
+    'Apenas o dono da barraca pode cancelar a assinatura.',
+  'erro de regra de negocio (ja em portugues, vindo do RAISE EXCEPTION) passa direto',
+)
+
 
 // ---------------------------------------------------------------------
 // O dialogo nao pode virar funil de retencao
