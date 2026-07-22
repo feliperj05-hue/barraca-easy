@@ -6,6 +6,7 @@ import {
   vagasRestantes,
   cancelarMinhaAssinatura,
   cancelamentoAgendado,
+  mensagemDeErroCancelamento,
 } from '../services/subscriptionService.js'
 import CancelSubscriptionDialog from './CancelSubscriptionDialog.jsx'
 import { formatBRL } from '../utils/money.js'
@@ -95,7 +96,11 @@ export default function SubscriptionCard({ subscription, onContratou, notify }) 
       }
       if (onContratou) await onContratou()
     } catch (e) {
-      setErroCancelar((e && e.message) || 'Não deu para cancelar agora. Tente de novo.')
+      // #120: o erro tem que ficar visivel DENTRO do dialogo (que continua
+      // aberto), nao atras dele -- por isso vai como prop pro dialogo, nao
+      // como paragrafo solto no card. E o texto passa pelo tradutor: RPC sem
+      // migration aplicada ou falha de rede nao pode vazar cru pro dono.
+      setErroCancelar(mensagemDeErroCancelamento(e))
     } finally {
       setCancelando(false)
     }
@@ -227,21 +232,31 @@ export default function SubscriptionCard({ subscription, onContratou, notify }) 
           do teste acabar. */}
       {!jaCancelada && !agendado ? (
         <p className="assinatura-cancelar">
-          <button type="button" className="link-discreto" onClick={() => setConfirmando(true)}>
+          <button
+            type="button"
+            className="link-discreto"
+            onClick={() => {
+              setErroCancelar('')
+              setConfirmando(true)
+            }}
+          >
             Cancelar assinatura
           </button>
         </p>
       ) : null}
 
-      {erroCancelar ? <p className="auth-error">{erroCancelar}</p> : null}
       </div>
 
       {confirmando ? (
         <CancelSubscriptionDialog
           subscription={subscription}
           busy={cancelando}
+          erro={erroCancelar}
           onConfirm={confirmarCancelamento}
-          onClose={() => setConfirmando(false)}
+          onClose={() => {
+            setErroCancelar('')
+            setConfirmando(false)
+          }}
         />
       ) : null}
 
