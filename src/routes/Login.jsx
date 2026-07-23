@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { signIn, signUp, resendConfirmation } from '../services/authService.js'
+import { signIn, signUp, resendConfirmation, requestPasswordReset } from '../services/authService.js'
 
 // Tela de login/cadastro (e-mail + senha via Supabase Auth).
 // Confirm email fica LIGADO no projeto: apos criar conta, o usuario precisa
@@ -9,7 +9,7 @@ export default function Login() {
   const [mode, setMode] = useState(() => {
     const params = new URLSearchParams(window.location.search)
     return params.get('acao') === 'cadastro' ? 'signup' : 'signin'
-  }) // 'signin' | 'signup'
+  }) // 'signin' | 'signup' | 'forgot'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -31,6 +31,12 @@ export default function Login() {
       return 'Ja existe uma conta com esse e-mail. Tente entrar.'
     }
     return msg
+  }
+
+  function trocarModo(novoModo) {
+    setMode(novoModo)
+    setError('')
+    setInfo('')
   }
 
   async function handleSubmit(e) {
@@ -75,6 +81,27 @@ export default function Login() {
     }
   }
 
+  // Recuperacao de senha (#98). Mensagem sempre neutra: nao da para o
+  // resultado (sucesso ou erro) revelar se o e-mail existe na base.
+  async function handleForgotSubmit(e) {
+    e.preventDefault()
+    setError('')
+    setInfo('')
+    if (!email.trim()) {
+      setError('Informe o e-mail.')
+      return
+    }
+    setBusy(true)
+    try {
+      await requestPasswordReset(email)
+    } catch {
+      // Ignorado de proposito: mesma mensagem, com ou sem erro do provedor.
+    } finally {
+      setBusy(false)
+      setInfo('Se este e-mail estiver cadastrado, enviamos um link para redefinir a senha.')
+    }
+  }
+
   return (
     <div className="auth-screen">
       <div className="auth-card">
@@ -83,66 +110,90 @@ export default function Login() {
           <h1>Barraca Easy</h1>
         </div>
 
-        <div className="auth-tabs">
-          <button
-            type="button"
-            className={'auth-tab' + (mode === 'signin' ? ' active' : '')}
-            onClick={() => {
-              setMode('signin')
-              setError('')
-              setInfo('')
-            }}
-          >
-            Entrar
-          </button>
-          <button
-            type="button"
-            className={'auth-tab' + (mode === 'signup' ? ' active' : '')}
-            onClick={() => {
-              setMode('signup')
-              setError('')
-              setInfo('')
-            }}
-          >
-            Criar conta
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="auth-form">
-          <label>
-            E-mail
-            <input
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="voce@exemplo.com"
-            />
-          </label>
-          <label>
-            Senha
-            <input
-              type="password"
-              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Sua senha"
-            />
-          </label>
-
-          {error && <p className="auth-error">{error}</p>}
-          {info && <p className="auth-info">{info}</p>}
-
-          <button type="submit" className="btn-primary" disabled={busy}>
-            {busy ? 'Aguarde...' : mode === 'signin' ? 'Entrar' : 'Criar conta'}
-          </button>
-
-          {mode === 'signin' && (
-            <button type="button" className="btn-ghost small" onClick={handleResend}>
-              Reenviar e-mail de confirmacao
+        {mode !== 'forgot' && (
+          <div className="auth-tabs">
+            <button
+              type="button"
+              className={'auth-tab' + (mode === 'signin' ? ' active' : '')}
+              onClick={() => trocarModo('signin')}
+            >
+              Entrar
             </button>
-          )}
-        </form>
+            <button
+              type="button"
+              className={'auth-tab' + (mode === 'signup' ? ' active' : '')}
+              onClick={() => trocarModo('signup')}
+            >
+              Criar conta
+            </button>
+          </div>
+        )}
+
+        {mode === 'forgot' ? (
+          <form onSubmit={handleForgotSubmit} className="auth-form">
+            <label>
+              E-mail
+              <input
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="voce@exemplo.com"
+              />
+            </label>
+
+            {error && <p className="auth-error">{error}</p>}
+            {info && <p className="auth-info">{info}</p>}
+
+            <button type="submit" className="btn-primary" disabled={busy}>
+              {busy ? 'Aguarde...' : 'Enviar link de recuperacao'}
+            </button>
+            <button type="button" className="btn-ghost small" onClick={() => trocarModo('signin')}>
+              Voltar para entrar
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="auth-form">
+            <label>
+              E-mail
+              <input
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="voce@exemplo.com"
+              />
+            </label>
+            <label>
+              Senha
+              <input
+                type="password"
+                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Sua senha"
+              />
+            </label>
+
+            {error && <p className="auth-error">{error}</p>}
+            {info && <p className="auth-info">{info}</p>}
+
+            <button type="submit" className="btn-primary" disabled={busy}>
+              {busy ? 'Aguarde...' : mode === 'signin' ? 'Entrar' : 'Criar conta'}
+            </button>
+
+            {mode === 'signin' && (
+              <>
+                <button type="button" className="btn-ghost small" onClick={handleResend}>
+                  Reenviar e-mail de confirmacao
+                </button>
+                <button type="button" className="btn-ghost small" onClick={() => trocarModo('forgot')}>
+                  Esqueci minha senha
+                </button>
+              </>
+            )}
+          </form>
+        )}
       </div>
     </div>
   )

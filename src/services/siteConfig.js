@@ -97,3 +97,14 @@ export function ehRotaMarketing(pathname) {
   const limpo = String(pathname || '').replace(/\/+$/, '') || '/'
   return limpo === MARKETING_BASE || limpo.startsWith(MARKETING_BASE + '/')
 }
+
+// Endereco fixo do link de recuperacao de senha (#98), fora do app (/caixa
+// etc.) e fora do site comercial (/comercial): precisa abrir mesmo sem
+// sessao, sem tenant e sem assinatura em dia -- nenhuma das checagens do
+// AppGate se aplica a quem so quer trocar a senha.
+export const RESET_PASSWORD_PATH = '/recuperar-senha'
+
+export function ehRotaRecuperarSenha(pathname) {
+  const limpo = String(pathname || '').replace(/\/+$/, '') || '/'
+  return limpo === RESET_PASSWORD_PATH
+}
