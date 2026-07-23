@@ -3,7 +3,7 @@ import ProductGrid from '../components/ProductGrid.jsx'
 import CartPanel from '../components/CartPanel.jsx'
 import PaymentModal from '../components/PaymentModal.jsx'
 import { formatBRL } from '../utils/money.js'
-import { nextSequentialTicket } from '../utils/tickets.js'
+import { nextSequentialTicket, REASSIGN_BAND_START } from '../utils/tickets.js'
 import { isAutoTicket } from '../services/settingsService.js'
 import {
   playAddToCart,
@@ -162,7 +162,9 @@ export default function Cashier({ settings, menu, orders, onCreateOrder, notify 
     }
     if (!items.length) return notify('Adicione pelo menos um item.')
     if (!payment) return notify('Selecione a forma de pagamento.')
-    setAutoTicket(auto ? nextSequentialTicket(orders || []) : null)
+    setAutoTicket(
+      auto ? nextSequentialTicket(orders || [], { bandStart: REASSIGN_BAND_START }) : null,
+    )
     setModalOpen(true)
   }
 

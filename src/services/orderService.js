@@ -16,11 +16,23 @@
 // Os helpers de leitura (getOpenOrders, isTicketTaken) sao puros sobre um array
 // de pedidos ja carregado — servem aos dois backends.
 
-import { normalizeTicket, nextFreeTicket, nextSequentialTicket } from '../utils/tickets.js'
+import {
+  normalizeTicket,
+  nextFreeTicket,
+  nextSequentialTicket,
+  REASSIGN_BAND_START,
+} from '../utils/tickets.js'
 import { isSameDay } from '../utils/dates.js'
 import { supabase, isSupabaseConfigured } from './supabaseClient.js'
-import { cacheGet, cacheSet, outboxAdd, incidentAdd } from './offlineDb.js'
-import { reportNetResult } from './netStatus.js'
+import {
+  cacheGet,
+  cacheSet,
+  outboxAdd,
+  incidentAdd,
+  outboxAll,
+  outboxDelete,
+} from './offlineDb.js'
+import { reportNetResult, refreshPending } from './netStatus.js'
 import { registerHandler, isDeferrableError } from './syncQueue.js'
 
 const STORAGE_KEY = 'barracaEasyManualTicketState'
@@ -322,12 +334,27 @@ async function cloudUpdateStatus(ctx, id, opType) {
 // folga uma colisao real (dois aparelhos offline na mesma faixa de senhas).
 const MAX_REASSIGN_TRIES = 25
 
-// Faixa reservada para senha reatribuida (#59). A senha e um papel fisico de
-// bloco sequencial; se a reatribuicao pegasse o menor numero livre, ela cairia
-// num papel que o caixa ainda vai entregar e a colisao voltaria mais tarde.
-// Comecar em 900 mantem a senha reatribuida longe do bloco em uso — o operador
-// avisa o cliente verbalmente ("sua senha agora e a 900").
-const REASSIGN_BAND_START = 900
+// Reconciliacao de replay (#132). A RPC create_order NAO e idempotente: um
+// `create` que subiu no servidor mas perdeu a resposta (queda de conexao logo
+// apos o commit) volta pela fila e bate 23505 (senha usada). Sem reconhecer que
+// e a MESMA venda, a reatribuicao criaria uma duplicata na faixa 900+. Aqui a
+// gente identifica a venda que ja esta la: mesma senha, mesmo total, no mesmo
+// dia e nao cancelada. Se achou, a venda ja foi aplicada — o chamador adota a
+// linha existente em vez de recriar. Pura de proposito, para ter teste direto.
+export function findAppliedOrder(payload, orders) {
+  const senha = normalizeTicket(payload.ticket)
+  const total = Number(payload.total)
+  const now = new Date()
+  return (
+    (orders || []).find(
+      (o) =>
+        o.status !== 'cancelado' &&
+        normalizeTicket(o.ticket) === senha &&
+        Number(o.total) === total &&
+        isSameDay(o.createdAt, now),
+    ) || null
+  )
+}
 
 // Sobe um pedido da fila offline. Se a senha ja foi usada hoje por outro
 // aparelho, NAO descarta a venda: pega uma senha livre e sobe com ela,
@@ -345,6 +372,12 @@ async function cloudCreateWithReassign(tenantId, payload) {
   }
 
   const original = normalizeTicket(payload.ticket)
+
+  // Antes de reatribuir (#132): a venda pode ter subido e so a resposta ter se
+  // perdido. Se ela ja esta no servidor, adota a existente — nao duplica.
+  const applied = findAppliedOrder(payload, await cloudFetchRaw(tenantId))
+  if (applied) return { order: applied, reassignedFrom: null }
+
   let candidate = null
   for (let i = 0; i < MAX_REASSIGN_TRIES; i += 1) {
     // Reconsulta a cada volta: outro aparelho pode ter ocupado a senha no meio.
@@ -452,6 +485,37 @@ export async function deliverOrder(ctx, id) {
 export async function cancelOrder(ctx, id) {
   if (!isCloud(ctx)) return localUpdateStatus(id, 'cancelado', 'cancelledAt')
   return cloudUpdateStatus(ctx, id, 'cancel')
+}
+
+// Fechamento de caixa neutraliza a fila offline do tenant (#132). Um `create`
+// preso na outbox sobrevivia ao fechamento e era re-inserido pelo motor de sync
+// a cada volta, ressuscitando pedidos no caixa recem-fechado (o loop que o
+// Felipe viu). Fechar o caixa e um marco do expediente: aqui a gente NAO tenta
+// subir (subir depois do clearOrders so repovoaria o banco) — a gente registra
+// um incidente VISIVEL para cada venda que ficou na fila (o operador precisa
+// conferir/relancar, nada some calado) e remove as pendencias do tenant, para
+// nada voltar no proximo caixa. call/deliver/cancel pendentes tambem saem: os
+// pedidos que eles mirariam acabaram de ser apagados.
+export async function purgePendingOnClose(ctx) {
+  if (!isCloud(ctx)) return
+  const ops = await outboxAll()
+  for (const op of ops) {
+    if (op.tenantId !== ctx.tenantId) continue
+    if (op.type === 'create') {
+      await incidentAdd({
+        type: 'op-failed',
+        opType: 'create',
+        tenantId: op.tenantId,
+        ticket: (op.payload && op.payload.ticket) || null,
+        total: (op.payload && op.payload.total) || null,
+        reason:
+          'Caixa fechado com esta venda ainda na fila de envio. Confira se ela ' +
+          'entrou no fechamento; se nao entrou, lance o pedido de novo.',
+      })
+    }
+    await outboxDelete(op.seq)
+  }
+  await refreshPending()
 }
 
 // Limpa os pedidos (usado no fechamento de caixa e em demonstracao).

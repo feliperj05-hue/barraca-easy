@@ -26,7 +26,8 @@
     "cancelamento": "node scripts/cancelamento.mjs",
     "aviso-fiscal": "node scripts/aviso-fiscal.mjs",
     "previa-site": "node scripts/gerar-previa-site.mjs",
-    "verifica-publicado": "node scripts/verifica-publicado.mjs"
+    "verifica-publicado": "node scripts/verifica-publicado.mjs",
+    "fila-presa": "node scripts/fila-presa.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",

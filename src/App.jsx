@@ -31,6 +31,7 @@ import {
   deliverOrder,
   cancelOrder,
   clearOrders,
+  purgePendingOnClose,
 } from './services/orderService.js'
 import { initSync } from './services/syncQueue.js'
 import { reenviarPendentes } from './services/feedbackCloud.js'
@@ -147,10 +148,17 @@ export default function App() {
 
   // Contexto de dados: com tenant os dados vao para a nuvem (Supabase);
   // sem tenant (modo local) caem no localStorage. Vale para cardapio e pedidos.
-  const tenantCtx = useMemo(
-    () => (membership && membership.tenantId ? { tenantId: membership.tenantId } : null),
-    [membership],
-  )
+  //
+  // A dependencia e a STRING do tenantId, nao o objeto `membership`. Por que:
+  // cada evento de auth (TOKEN_REFRESHED, foco/voltar pra tela no iOS) faz o
+  // AuthContext recriar `membership` do zero — mesmo valor, identidade nova. Se
+  // `tenantCtx` dependesse do objeto, ele trocaria de identidade a cada refresh
+  // de token e TODOS os efeitos abaixo (pedidos, cardapio, polling e o canal
+  // realtime) seriam derrubados e remontados sem parar. Em wifi de praia, com o
+  // iPhone renovando token a cada retomada, isso vira reassinatura/refetch em
+  // loop — o "app rodando em loop" e a sincronizacao instavel entre aparelhos.
+  const tenantId = (membership && membership.tenantId) || null
+  const tenantCtx = useMemo(() => (tenantId ? { tenantId } : null), [tenantId])
 
   // Carrega o cardapio (local ou nuvem) e semeia os padrao num tenant novo.
   useEffect(() => {
@@ -446,6 +454,8 @@ export default function App() {
       // carregado do backend) e só então limpa os pedidos do tenant.
       await createClosing(tenantCtx, orders)
       await clearOrders(tenantCtx)
+      // Neutraliza a fila offline para o caixa fechado nao ressuscitar (#132).
+      await purgePendingOnClose(tenantCtx)
       commitOrders([])
       setClosings(await fetchClosings(tenantCtx))
       notify('Caixa fechado. Relatório disponível no histórico.')

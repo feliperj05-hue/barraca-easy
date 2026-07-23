@@ -18,6 +18,14 @@ import { isSameDay } from './dates.js'
 export const TICKET_WIDTH_MANUAL = 3
 export const TICKET_WIDTH_AUTO = 4
 
+// Faixa reservada para senha reatribuida (#59). Fica aqui, junto das
+// funcoes de senha, porque tanto o replay da fila (orderService) quanto o
+// congelamento da senha automatica no caixa (Cashier) precisam ignorar essa
+// faixa ao calcular a proxima senha — senao uma unica reatribuicao para 900+
+// empurraria a sequencia normal pra la e a proxima venda pularia de 0007 pra
+// 0901.
+export const REASSIGN_BAND_START = 900
+
 let currentWidth = TICKET_WIDTH_MANUAL
 
 export function setTicketWidth(width) {
