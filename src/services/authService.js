@@ -44,6 +44,42 @@ export async function resendConfirmation(email) {
   if (error) throw error
 }
 
+// --- Recuperacao de senha (#98) ---
+//
+// Redirect calculado em runtime a partir da origem atual (window.location),
+// nunca hardcoded: quando o dominio proprio entrar (ver siteConfig.js), o
+// link de recuperacao segue sozinho, sem deploy de codigo novo.
+export function passwordResetRedirect() {
+  if (typeof window === 'undefined') return undefined
+  return `${window.location.origin}/recuperar-senha`
+}
+
+// Pede o e-mail de recuperacao. O Supabase, por design, nao diferencia
+// "e-mail existe" de "e-mail nao existe" nesta chamada — o proprio provedor
+// ja evita o vazamento que o criterio de aceite da #98 pede. O chamador deve
+// mostrar SEMPRE a mesma mensagem neutra, tenha dado certo ou nao.
+export async function requestPasswordReset(email) {
+  const { error } = await requireClient().auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: passwordResetRedirect(),
+  })
+  if (error) throw error
+}
+
+// Define a nova senha. So funciona com a sessao de recuperacao que o link do
+// e-mail cria (evento PASSWORD_RECOVERY) — sem ela o Supabase recusa.
+export async function updatePassword(novaSenha) {
+  const { error } = await requireClient().auth.updateUser({ password: novaSenha })
+  if (error) throw error
+}
+
+// Validacao pura (sem rede), reaproveitada pela tela e testada isoladamente
+// em scripts/recuperar-senha.mjs. Devolve mensagem de erro ou null se valida.
+export function validarNovaSenha(senha, confirmacao) {
+  if (!senha || senha.length < 6) return 'A senha precisa ter pelo menos 6 caracteres.'
+  if (senha !== confirmacao) return 'As senhas nao conferem.'
+  return null
+}
+
 // --- Sessao resiliente (#75) ---
 //
 // O degrau anterior ao vinculo do #73: a **sessao**. O access token do Supabase

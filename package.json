@@ -27,7 +27,8 @@
     "aviso-fiscal": "node scripts/aviso-fiscal.mjs",
     "previa-site": "node scripts/gerar-previa-site.mjs",
     "verifica-publicado": "node scripts/verifica-publicado.mjs",
-    "fila-presa": "node scripts/fila-presa.mjs"
+    "fila-presa": "node scripts/fila-presa.mjs",
+    "recuperar-senha": "node scripts/recuperar-senha.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",

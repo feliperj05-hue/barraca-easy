@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { ehRotaMarketing } from './services/siteConfig.js'
+import { ehRotaMarketing, ehRotaRecuperarSenha } from './services/siteConfig.js'
 
 // Divisao entre SITE COMERCIAL e APLICATIVO (#111).
 //
@@ -17,6 +17,7 @@ import { ehRotaMarketing } from './services/siteConfig.js'
 // services/router.js: nada aqui interfere nele.
 const MarketingSite = lazy(() => import('./marketing/MarketingSite.jsx'))
 const AppGate = lazy(() => import('./AppGate.jsx'))
+const ResetPassword = lazy(() => import('./routes/ResetPassword.jsx'))
 
 function RouteLoading() {
   return (
@@ -33,13 +34,17 @@ function RouteLoading() {
 }
 
 export default function Root() {
-  const marketing = ehRotaMarketing(
-    typeof window === 'undefined' ? '/' : window.location.pathname,
-  )
+  const pathname = typeof window === 'undefined' ? '/' : window.location.pathname
+  const marketing = ehRotaMarketing(pathname)
+  // Recuperacao de senha (#98) e checada ANTES do AppGate de proposito: o
+  // link do e-mail pode chegar sem sessao, com tenant pendente ou com
+  // assinatura vencida, e nenhuma dessas checagens deve impedir a pessoa de
+  // trocar a senha.
+  const recuperarSenha = ehRotaRecuperarSenha(pathname)
 
   return (
     <Suspense fallback={<RouteLoading />}>
-      {marketing ? <MarketingSite /> : <AppGate />}
+      {recuperarSenha ? <ResetPassword /> : marketing ? <MarketingSite /> : <AppGate />}
     </Suspense>
   )
 }
