@@ -84,6 +84,7 @@ jobs:
           npm run teclado
           npm run portao-offline
           npm run sessao-offline
+          npm run fila-presa
           npm run contraste
           npm run rotas
           npm run diario-piloto
